@@ -14,7 +14,303 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      challenge_enrollments: {
+        Row: {
+          challenge_id: string
+          enrolled_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          enrolled_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          enrolled_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_enrollments_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenge_items: {
+        Row: {
+          challenge_id: string
+          created_at: string
+          description: string | null
+          id: string
+          order_index: number | null
+          requires_photo: boolean | null
+          title: string
+          unlock_days: number[] | null
+          unlock_time: string
+          xp_points: number | null
+        }
+        Insert: {
+          challenge_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_index?: number | null
+          requires_photo?: boolean | null
+          title: string
+          unlock_days?: number[] | null
+          unlock_time: string
+          xp_points?: number | null
+        }
+        Update: {
+          challenge_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_index?: number | null
+          requires_photo?: boolean | null
+          title?: string
+          unlock_days?: number[] | null
+          unlock_time?: string
+          xp_points?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_items_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenges: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string
+          end_date: string
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          max_participants: number | null
+          start_date: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description: string
+          end_date: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          max_participants?: number | null
+          start_date: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string
+          end_date?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          max_participants?: number | null
+          start_date?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      community_posts: {
+        Row: {
+          challenge_id: string
+          content: string
+          created_at: string
+          id: string
+          image_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          content: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_posts_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          post_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          post_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_likes: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          is_admin: boolean | null
+          level: number | null
+          total_xp: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          is_admin?: boolean | null
+          level?: number | null
+          total_xp?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          is_admin?: boolean | null
+          level?: number | null
+          total_xp?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_progress: {
+        Row: {
+          challenge_item_id: string
+          completed_at: string
+          id: string
+          notes: string | null
+          photo_url: string | null
+          user_id: string
+          xp_earned: number | null
+        }
+        Insert: {
+          challenge_item_id: string
+          completed_at?: string
+          id?: string
+          notes?: string | null
+          photo_url?: string | null
+          user_id: string
+          xp_earned?: number | null
+        }
+        Update: {
+          challenge_item_id?: string
+          completed_at?: string
+          id?: string
+          notes?: string | null
+          photo_url?: string | null
+          user_id?: string
+          xp_earned?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_progress_challenge_item_id_fkey"
+            columns: ["challenge_item_id"]
+            isOneToOne: false
+            referencedRelation: "challenge_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
