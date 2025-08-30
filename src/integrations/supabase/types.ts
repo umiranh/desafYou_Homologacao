@@ -90,6 +90,60 @@ export type Database = {
           },
         ]
       }
+      challenge_rankings: {
+        Row: {
+          challenge_id: string
+          coins_earned: number | null
+          created_at: string
+          id: string
+          position: number
+          total_xp: number
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          coins_earned?: number | null
+          created_at?: string
+          id?: string
+          position: number
+          total_xp: number
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          coins_earned?: number | null
+          created_at?: string
+          id?: string
+          position?: number
+          total_xp?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      challenge_rewards: {
+        Row: {
+          challenge_id: string
+          coins_reward: number
+          created_at: string
+          id: string
+          position: number
+        }
+        Insert: {
+          challenge_id: string
+          coins_reward: number
+          created_at?: string
+          id?: string
+          position: number
+        }
+        Update: {
+          challenge_id?: string
+          coins_reward?: number
+          created_at?: string
+          id?: string
+          position?: number
+        }
+        Relationships: []
+      }
       challenges: {
         Row: {
           created_at: string
@@ -238,6 +292,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          coins: number | null
           created_at: string
           display_name: string | null
           id: string
@@ -250,6 +305,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          coins?: number | null
           created_at?: string
           display_name?: string | null
           id?: string
@@ -262,6 +318,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          coins?: number | null
           created_at?: string
           display_name?: string | null
           id?: string
