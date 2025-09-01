@@ -45,6 +45,7 @@ interface Challenge {
 }
 
 interface Ranking {
+  id?: string;
   user_id: string;
   display_name: string;
   total_xp: number;
@@ -101,11 +102,18 @@ export default function Challenges() {
               .from('user_progress')
               .select('*')
               .eq('user_id', user.id)
-              .in('challenge_item_id', challenge.challenge_items.map(item => item.id));
+              .in('challenge_item_id', challenge.challenge_items?.map(item => item.id) || []);
+
+            // Fetch challenge rewards
+            const { data: rewardsData } = await supabase
+              .from('challenge_rewards')
+              .select('*')
+              .eq('challenge_id', challenge.id);
 
             return {
               ...challenge,
-              user_progress: progressData || []
+              user_progress: progressData || [],
+              challenge_rewards: rewardsData || []
             };
           })
         );
@@ -118,28 +126,29 @@ export default function Challenges() {
         for (const challenge of challengesWithProgress) {
           const { data: enrollmentsData } = await supabase
             .from('challenge_enrollments')
-            .select(`
-              user_id,
-              profiles!challenge_enrollments_user_id_fkey (
-                display_name
-              )
-            `)
+            .select('user_id')
             .eq('challenge_id', challenge.id);
 
           if (enrollmentsData) {
             const userXPs = await Promise.all(
               enrollmentsData.map(async (enrollment) => {
+                const { data: profileData } = await supabase
+                  .from('profiles')
+                  .select('display_name')
+                  .eq('user_id', enrollment.user_id)
+                  .single();
+
                 const { data: progressData } = await supabase
                   .from('user_progress')
                   .select('xp_earned')
                   .eq('user_id', enrollment.user_id)
-                  .in('challenge_item_id', challenge.challenge_items.map(item => item.id));
+                  .in('challenge_item_id', challenge.challenge_items?.map(item => item.id) || []);
 
-                const totalXP = progressData?.reduce((sum, progress) => sum + progress.xp_earned, 0) || 0;
+                const totalXP = progressData?.reduce((sum, progress) => sum + (progress.xp_earned || 0), 0) || 0;
 
                 return {
                   user_id: enrollment.user_id,
-                  display_name: enrollment.profiles?.display_name || 'Usuário',
+                  display_name: profileData?.display_name || 'Usuário',
                   total_xp: totalXP
                 };
               })
@@ -148,7 +157,10 @@ export default function Challenges() {
             // Sort by XP and assign positions
             const sortedUsers = userXPs.sort((a, b) => b.total_xp - a.total_xp);
             challengeRankings[challenge.id] = sortedUsers.map((user, index) => ({
-              ...user,
+              id: `${user.user_id}-${challenge.id}`,
+              user_id: user.user_id,
+              display_name: user.display_name,
+              total_xp: user.total_xp,
               position: index + 1
             }));
           }
@@ -277,11 +289,18 @@ export default function Challenges() {
               .from('user_progress')
               .select('*')
               .eq('user_id', user.id)
-              .in('challenge_item_id', challenge.challenge_items.map(item => item.id));
+              .in('challenge_item_id', challenge.challenge_items?.map(item => item.id) || []);
+
+            // Fetch challenge rewards
+            const { data: rewardsData } = await supabase
+              .from('challenge_rewards')
+              .select('*')
+              .eq('challenge_id', challenge.id);
 
             return {
               ...challenge,
-              user_progress: progressData || []
+              user_progress: progressData || [],
+              challenge_rewards: rewardsData || []
             };
           })
         );
@@ -322,7 +341,7 @@ export default function Challenges() {
   const getUserPosition = (challengeId: string) => {
     const ranking = rankings[challengeId];
     if (!ranking) return null;
-    return ranking.find(user => user.user_id === user?.id)?.position;
+    return ranking.find(user => user.user_id === user!.id)?.position;
   };
 
   const formatDate = (dateString: string) => {
@@ -428,7 +447,7 @@ export default function Challenges() {
                             <div
                               key={user.user_id}
                               className={`flex items-center justify-between p-2 rounded ${
-                                user.user_id === user?.id ? 'bg-primary/10' : ''
+                                user.user_id === user!.id ? 'bg-primary/10' : ''
                               }`}
                             >
                               <div className="flex items-center space-x-3">

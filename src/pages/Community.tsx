@@ -132,7 +132,34 @@ export default function Community() {
         const { data, error } = await query;
 
         if (error) throw error;
-        setPosts(data || []);
+        
+        // Format data to handle type issues
+        const formattedPosts = data?.map(post => {
+          const profiles = post.profiles && typeof post.profiles === 'object' && post.profiles !== null 
+            ? post.profiles as any
+            : null;
+          
+          return {
+            ...post,
+            profiles: profiles && 'display_name' in profiles
+              ? {
+                  display_name: profiles.display_name || 'Usuário',
+                  level: profiles.level || 1
+                }
+              : {
+                  display_name: 'Usuário',
+                  level: 1
+                },
+            post_comments: (post.post_comments || []).map((comment: any) => ({
+              ...comment,
+              profiles: comment.profiles && typeof comment.profiles === 'object' && 'display_name' in comment.profiles
+                ? { display_name: comment.profiles.display_name || 'Usuário' }
+                : { display_name: 'Usuário' }
+            }))
+          };
+        }) || [];
+        
+        setPosts(formattedPosts);
       } catch (error) {
         console.error('Error fetching posts:', error);
         toast({
@@ -245,8 +272,34 @@ export default function Community() {
         `)
         .order('created_at', { ascending: false });
 
-      if (!fetchError) {
-        setPosts(data || []);
+      if (!fetchError && data) {
+        // Format data to handle type issues  
+        const formattedPosts = data.map(post => {
+          const profiles = post.profiles && typeof post.profiles === 'object' && post.profiles !== null 
+            ? post.profiles as any
+            : null;
+          
+          return {
+            ...post,
+            profiles: profiles && 'display_name' in profiles
+              ? {
+                  display_name: profiles.display_name || 'Usuário',
+                  level: profiles.level || 1
+                }
+              : {
+                  display_name: 'Usuário',
+                  level: 1
+                },
+            post_comments: (post.post_comments || []).map((comment: any) => ({
+              ...comment,
+              profiles: comment.profiles && typeof comment.profiles === 'object' && 'display_name' in comment.profiles
+                ? { display_name: comment.profiles.display_name || 'Usuário' }
+                : { display_name: 'Usuário' }
+            }))
+          };
+        });
+        
+        setPosts(formattedPosts);
       }
     } catch (error: any) {
       console.error('Error creating post:', error);

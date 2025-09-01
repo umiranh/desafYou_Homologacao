@@ -83,24 +83,26 @@ export default function Profile() {
         // Fetch achievements (completed challenges with rankings)
         const { data: achievementsData } = await supabase
           .from('challenge_rankings')
-          .select(`
-            position,
-            coins_earned,
-            created_at,
-            challenges (
-              title
-            )
-          `)
+          .select('position, coins_earned, created_at, challenge_id')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
 
         if (achievementsData) {
-          const formattedAchievements = achievementsData.map(achievement => ({
-            challenge_title: achievement.challenges?.title || 'Desafio',
-            position: achievement.position,
-            coins_earned: achievement.coins_earned,
-            completed_at: achievement.created_at,
-          }));
+          const challengeIds = achievementsData.map(a => a.challenge_id);
+          const { data: challengesData } = await supabase
+            .from('challenges')
+            .select('id, title')
+            .in('id', challengeIds);
+
+          const formattedAchievements = achievementsData.map(achievement => {
+            const challenge = challengesData?.find(c => c.id === achievement.challenge_id);
+            return {
+              challenge_title: challenge?.title || 'Desafio',
+              position: achievement.position,
+              coins_earned: achievement.coins_earned,
+              completed_at: achievement.created_at,
+            };
+          });
           
           setAchievements(formattedAchievements);
         }
