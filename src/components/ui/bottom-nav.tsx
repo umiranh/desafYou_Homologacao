@@ -3,15 +3,15 @@ import { cn } from "@/lib/utils";
 
 interface BottomNavProps {
   currentPage: string;
-  onNavigate: (page: string) => void;
+  onNavigate: (path: string) => void;
 }
 
 export const BottomNav = ({ currentPage, onNavigate }: BottomNavProps) => {
   const navItems = [
-    { id: 'home', icon: Home, label: 'Início' },
-    { id: 'community', icon: Users, label: 'Comunidade' },
-    { id: 'challenges', icon: CheckSquare, label: 'Desafios' },
-    { id: 'profile', icon: User, label: 'Perfil' },
+    { id: 'dashboard', path: '/dashboard', icon: Home, label: 'Início' },
+    { id: 'community', path: '/community', icon: Users, label: 'Comunidade' },
+    { id: 'challenges', path: '/challenges', icon: CheckSquare, label: 'Desafios' },
+    { id: 'profile', path: '/profile', icon: User, label: 'Perfil' },
   ];
 
   return (
@@ -20,7 +20,7 @@ export const BottomNav = ({ currentPage, onNavigate }: BottomNavProps) => {
         {navItems.map((item) => (
           <button
             key={item.id}
-            onClick={() => onNavigate(item.id)}
+            onClick={() => onNavigate(item.path)}
             className={cn(
               "flex flex-col items-center gap-1 p-2 min-w-[64px] transition-colors",
               currentPage === item.id

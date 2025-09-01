@@ -619,7 +619,7 @@ export default function Challenges() {
         )}
       </div>
 
-      <BottomNav currentPage="challenges" onNavigate={navigate} />
+      <BottomNav currentPage="challenges" onNavigate={(path) => navigate(path)} />
     </div>
   );
 }

@@ -585,7 +585,7 @@ export default function Community() {
         )}
       </div>
 
-      <BottomNav currentPage="community" onNavigate={navigate} />
+      <BottomNav currentPage="community" onNavigate={(path) => navigate(path)} />
     </div>
   );
 }

@@ -509,7 +509,7 @@ export default function Profile() {
         </Card>
       </div>
 
-      <BottomNav currentPage="profile" onNavigate={navigate} />
+      <BottomNav currentPage="profile" onNavigate={(path) => navigate(path)} />
     </div>
   );
 }

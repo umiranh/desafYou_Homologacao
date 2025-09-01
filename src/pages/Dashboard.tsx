@@ -415,7 +415,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      <BottomNav currentPage="home" onNavigate={navigate} />
+      <BottomNav currentPage="dashboard" onNavigate={(path) => navigate(path)} />
     </div>
   );
 }

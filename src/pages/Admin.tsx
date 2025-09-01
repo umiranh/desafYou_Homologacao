@@ -439,7 +439,7 @@ export default function Admin() {
         </Card>
       </div>
 
-      <BottomNav currentPage="admin" onNavigate={navigate} />
+      <BottomNav currentPage="admin" onNavigate={(path) => navigate(path)} />
     </div>
   );
 }
