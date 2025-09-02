@@ -8,33 +8,34 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Desafyou Design System - Fitness & Personal Development Theme */
-    --background: 15 20% 96%;
+    /* Desafyou Mobile Design System - Pink/Beige Gradient Theme */
+    --background: 15 25% 94%;
     --foreground: 0 0% 10%;
 
+    /* Cards with soft background */
     --card: 0 0% 100%;
     --card-foreground: 0 0% 10%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 10%;
 
-    /* Primary: Deep black for main actions */
+    /* Primary: Deep black for main actions and text */
     --primary: 0 0% 8%;
     --primary-foreground: 0 0% 98%;
 
-    /* Secondary: Soft neutral */
-    --secondary: 15 10% 92%;
+    /* Secondary: Soft pink/beige tones */
+    --secondary: 340 15% 85%;
     --secondary-foreground: 0 0% 10%;
 
-    /* Muted tones */  
-    --muted: 15 10% 94%;
+    /* Muted tones with pink undertones */  
+    --muted: 340 12% 88%;
     --muted-foreground: 0 0% 55%;
 
     /* Orange accent - signature Desafyou color */
     --accent: 16 100% 60%;
     --accent-foreground: 0 0% 98%;
 
-    /* Orange secondary variant */
+    /* Orange variations */
     --orange-light: 16 95% 65%;
     --orange-dark: 16 100% 55%;
 
@@ -42,12 +43,16 @@ All colors MUST be HSL.
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    /* Subtle borders and inputs */
-    --border: 15 15% 88%;
-    --input: 15 15% 88%;
+    /* Soft borders matching the design */
+    --border: 340 15% 85%;
+    --input: 340 15% 85%;
     --ring: 16 100% 60%;
 
-    --radius: 0.5rem;
+    /* Gradients for mobile design */
+    --gradient-main: linear-gradient(135deg, hsl(345 25% 92%) 0%, hsl(25 30% 90%) 100%);
+    --gradient-card: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(340 20% 98%) 100%);
+
+    --radius: 1rem;
 
     --sidebar-background: 0 0% 98%;
 
@@ -111,6 +116,8 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    background: linear-gradient(135deg, hsl(345, 25%, 92%) 0%, hsl(25, 30%, 90%) 100%);
+    min-height: 100vh;
   }
 }

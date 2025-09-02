@@ -78,128 +78,157 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/30 to-secondary/50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-card/95 backdrop-blur-sm shadow-2xl border-0">
-        <CardHeader className="text-center">
-          <CardTitle className="text-4xl font-black mb-2">
-            DESAF<span className="text-accent">YOU</span>
-          </CardTitle>
-          <CardDescription>
-            Transforme sua vida através de desafios
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="login" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Entrar</TabsTrigger>
-              <TabsTrigger value="signup">Cadastrar</TabsTrigger>
+    <div className="min-h-screen flex items-center justify-center p-4 relative">
+      <div className="w-full max-w-sm mx-auto space-y-8">
+        {/* Logo */}
+        <div className="text-center space-y-2">
+          <div className="text-5xl font-black tracking-tighter">
+            <span className="text-primary">DESAF</span>
+            <span className="text-accent">YOU</span>
+          </div>
+        </div>
+
+        <Card className="border-0 shadow-xl backdrop-blur-sm bg-white/90 rounded-3xl overflow-hidden">
+          <Tabs defaultValue="login" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6 bg-secondary/30 rounded-2xl p-1 mx-6 mt-6">
+              <TabsTrigger value="login" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Entrar</TabsTrigger>
+              <TabsTrigger value="signup" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Cadastrar</TabsTrigger>
             </TabsList>
             
-            <TabsContent value="login" className="space-y-4">
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="login-email">Email</Label>
-                  <Input
-                    id="login-email"
-                    type="email"
-                    value={loginData.email}
-                    onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
-                    placeholder="seu@email.com"
-                    required
-                    className="h-12 bg-secondary/50 border-border/50"
-                  />
+            <TabsContent value="login">
+              <form onSubmit={handleLogin} className="space-y-6 px-6 pb-6">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Input
+                      type="email"
+                      placeholder="Usuário"
+                      value={loginData.email}
+                      onChange={(e) =>
+                        setLoginData({ ...loginData, email: e.target.value })
+                      }
+                      className="h-12 bg-transparent border-0 border-b-2 border-muted-foreground/30 rounded-none placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-0"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Input
+                      type="password"
+                      placeholder="Senha"
+                      value={loginData.password}
+                      onChange={(e) =>
+                        setLoginData({ ...loginData, password: e.target.value })
+                      }
+                      className="h-12 bg-transparent border-0 border-b-2 border-muted-foreground/30 rounded-none placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-0"
+                      required
+                    />
+                  </div>
                 </div>
                 
-                <div className="space-y-2">
-                  <Label htmlFor="login-password">Senha</Label>
-                  <Input
-                    id="login-password"
-                    type="password"
-                    value={loginData.password}
-                    onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                    placeholder="Sua senha"
-                    required
-                    className="h-12 bg-secondary/50 border-border/50"
-                  />
+                <div className="space-y-4">
+                  <Button type="submit" className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground rounded-3xl text-lg font-semibold" disabled={isLoading}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Entrando...
+                      </>
+                    ) : (
+                      "Login"
+                    )}
+                  </Button>
+                  
+                  <div className="space-y-3">
+                    <Button variant="outline" className="w-full h-12 border-2 border-muted rounded-3xl hover:bg-muted/50 bg-white">
+                      <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                      </svg>
+                      Entrar com Google
+                    </Button>
+                    
+                    <Button variant="outline" className="w-full h-12 border-2 border-muted rounded-3xl hover:bg-muted/50 bg-white">
+                      <svg className="w-5 h-5 mr-3" fill="#1877F2" viewBox="0 0 24 24">
+                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                      </svg>
+                      Entrar com Facebook
+                    </Button>
+                  </div>
                 </div>
-
-                <Button 
-                  type="submit" 
-                  className="w-full bg-gradient-to-r from-primary to-primary/80"
-                  disabled={isLoading}
-                >
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                  Entrar
-                </Button>
               </form>
             </TabsContent>
-            
-            <TabsContent value="signup" className="space-y-4">
-              <form onSubmit={handleSignup} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-name">Nome de Exibição</Label>
-                  <Input
-                    id="signup-name"
-                    value={signupData.displayName}
-                    onChange={(e) => setSignupData({ ...signupData, displayName: e.target.value })}
-                    placeholder="Como você quer ser chamado"
-                    className="h-12 bg-secondary/50 border-border/50"
-                  />
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    value={signupData.email}
-                    onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
-                    placeholder="seu@email.com"
-                    required
-                    className="h-12 bg-secondary/50 border-border/50"
-                  />
+            <TabsContent value="signup">
+              <form onSubmit={handleSignup} className="space-y-6 px-6 pb-6">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Input
+                      type="text"
+                      placeholder="Nome completo"
+                      value={signupData.displayName}
+                      onChange={(e) =>
+                        setSignupData({ ...signupData, displayName: e.target.value })
+                      }
+                      className="h-12 bg-transparent border-0 border-b-2 border-muted-foreground/30 rounded-none placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-0"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Input
+                      type="email"
+                      placeholder="Email"
+                      value={signupData.email}
+                      onChange={(e) =>
+                        setSignupData({ ...signupData, email: e.target.value })
+                      }
+                      className="h-12 bg-transparent border-0 border-b-2 border-muted-foreground/30 rounded-none placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-0"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Input
+                      type="password"
+                      placeholder="Senha (mín. 6 caracteres)"
+                      value={signupData.password}
+                      onChange={(e) =>
+                        setSignupData({ ...signupData, password: e.target.value })
+                      }
+                      className="h-12 bg-transparent border-0 border-b-2 border-muted-foreground/30 rounded-none placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-0"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Input
+                      type="password"
+                      placeholder="Confirmar senha"
+                      value={signupData.confirmPassword}
+                      onChange={(e) =>
+                        setSignupData({
+                          ...signupData,
+                          confirmPassword: e.target.value,
+                        })
+                      }
+                      className="h-12 bg-transparent border-0 border-b-2 border-muted-foreground/30 rounded-none placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-0"
+                      required
+                    />
+                  </div>
                 </div>
                 
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">Senha</Label>
-                  <Input
-                    id="signup-password"
-                    type="password"
-                    value={signupData.password}
-                    onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
-                    placeholder="Mínimo 6 caracteres"
-                    required
-                    minLength={6}
-                    className="h-12 bg-secondary/50 border-border/50"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="signup-confirm">Confirmar Senha</Label>
-                  <Input
-                    id="signup-confirm"
-                    type="password"
-                    value={signupData.confirmPassword}
-                    onChange={(e) => setSignupData({ ...signupData, confirmPassword: e.target.value })}
-                    placeholder="Repita sua senha"
-                    required
-                    className="h-12 bg-secondary/50 border-border/50"
-                  />
-                </div>
-
-                <Button 
-                  type="submit" 
-                  className="w-full bg-gradient-to-r from-accent to-accent/80"
-                  disabled={isLoading}
-                >
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                  Criar Conta
+                <Button type="submit" className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground rounded-3xl text-lg font-semibold" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Criando conta...
+                    </>
+                  ) : (
+                    "Criar conta"
+                  )}
                 </Button>
               </form>
             </TabsContent>
           </Tabs>
-        </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }
