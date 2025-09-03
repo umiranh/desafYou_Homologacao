@@ -368,12 +368,12 @@ export default function Challenges() {
       background: 'linear-gradient(135deg, hsl(345, 25%, 92%) 0%, hsl(25, 30%, 90%) 100%)' 
     }}>
       <header className="bg-white/80 backdrop-blur-sm sticky top-0 z-50 border-b border-white/20 shadow-sm">
-        <div className="container mx-auto px-4 py-6">
-          <h1 className="text-2xl font-bold text-primary">💪 Meus Desafios</h1>
+        <div className="container mx-auto px-3 py-4 md:px-4 md:py-6">
+          <h1 className="text-xl md:text-2xl font-bold text-primary">💪 Meus Desafios</h1>
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-4 space-y-6">
+      <div className="container mx-auto px-3 py-4 space-y-4 md:px-4 md:space-y-6">
         {challenges.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground">
@@ -395,30 +395,30 @@ export default function Challenges() {
             
             return (
               <Card key={challenge.id} className="bg-white/70 backdrop-blur-sm border-0 shadow-lg rounded-3xl overflow-hidden">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg text-primary">{challenge.title}</CardTitle>
-                    <div className="flex items-center space-x-2">
+                <CardHeader className="p-4 md:p-6">
+                  <div className="flex flex-col space-y-3 md:flex-row md:items-center md:justify-between md:space-y-0">
+                    <CardTitle className="text-base md:text-lg text-primary pr-2">{challenge.title}</CardTitle>
+                    <div className="flex items-center space-x-2 flex-shrink-0">
                       {userPosition && (
-                        <Badge variant="outline" className="gap-1 border-primary/20 bg-primary/10">
+                        <Badge variant="outline" className="gap-1 border-primary/20 bg-primary/10 text-xs">
                           <Medal className="h-3 w-3 text-primary" />
                           #{userPosition}
                         </Badge>
                       )}
-                      <Badge variant="secondary" className="bg-primary/10 text-primary">
+                      <Badge variant="secondary" className="bg-primary/10 text-primary text-xs">
                         {totalXP} / {maxXP} XP
                       </Badge>
                     </div>
                   </div>
-                  <p className="text-sm text-muted-foreground">{challenge.description}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{challenge.description}</p>
                   
-                  <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                  <div className="flex flex-col space-y-2 text-xs text-muted-foreground md:flex-row md:items-center md:space-x-4 md:space-y-0 md:text-sm">
                     <div className="flex items-center space-x-1">
-                      <Clock className="h-4 w-4" />
-                      <span>{formatDate(challenge.start_date)} - {formatDate(challenge.end_date)}</span>
+                      <Clock className="h-4 w-4 flex-shrink-0" />
+                      <span className="break-words">{formatDate(challenge.start_date)} - {formatDate(challenge.end_date)}</span>
                     </div>
                     <div className="flex items-center space-x-1">
-                      <Users className="h-4 w-4" />
+                      <Users className="h-4 w-4 flex-shrink-0" />
                       <span>{rankings[challenge.id]?.length || 0} participantes</span>
                     </div>
                   </div>
@@ -432,27 +432,27 @@ export default function Challenges() {
                   </div>
                 </CardHeader>
 
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 p-4 md:p-6">
                   {/* Ranking */}
                   {rankings[challenge.id] && rankings[challenge.id].length > 0 && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-base flex items-center gap-2">
+                    <Card className="border-0 bg-white/50">
+                      <CardHeader className="p-4">
+                        <CardTitle className="text-sm md:text-base flex items-center gap-2">
                           <Trophy className="h-4 w-4" />
                           Ranking
                         </CardTitle>
                       </CardHeader>
-                      <CardContent>
+                      <CardContent className="p-4 pt-0">
                         <div className="space-y-2">
                           {rankings[challenge.id].slice(0, 5).map((user, index) => (
                             <div
                               key={user.user_id}
-                              className={`flex items-center justify-between p-2 rounded ${
-                                user.user_id === user!.id ? 'bg-primary/10' : ''
+                              className={`flex items-center justify-between p-3 rounded-xl ${
+                                user.user_id === user!.id ? 'bg-primary/10' : 'bg-white/30'
                               }`}
                             >
                               <div className="flex items-center space-x-3">
-                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                                <div className={`w-7 h-7 md:w-6 md:h-6 rounded-full flex items-center justify-center text-xs font-bold ${
                                   index === 0 ? 'bg-yellow-500 text-white' :
                                   index === 1 ? 'bg-gray-400 text-white' :
                                   index === 2 ? 'bg-amber-600 text-white' :
@@ -460,9 +460,9 @@ export default function Challenges() {
                                 }`}>
                                   {index + 1}
                                 </div>
-                                <span className="font-medium text-sm">{user.display_name}</span>
+                                <span className="font-medium text-sm truncate">{user.display_name}</span>
                               </div>
-                              <span className="text-sm font-medium">{user.total_xp} XP</span>
+                              <span className="text-xs md:text-sm font-medium flex-shrink-0">{user.total_xp} XP</span>
                             </div>
                           ))}
                         </div>
@@ -490,8 +490,8 @@ export default function Challenges() {
                   )}
 
                   {/* Challenge items */}
-                  <div className="space-y-3">
-                    <h3 className="font-medium">Tarefas</h3>
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-base">Tarefas</h3>
                     {challenge.challenge_items
                       .sort((a, b) => a.order_index - b.order_index)
                       .map((item) => {
@@ -499,59 +499,61 @@ export default function Challenges() {
                         const isCompleting = completingTasks.has(item.id);
                         
                         return (
-                          <Card key={item.id} className={completed ? 'bg-muted/50' : ''}>
+                          <Card key={item.id} className={`border-0 ${completed ? 'bg-green-50/80' : 'bg-white/60'}`}>
                             <CardContent className="p-4">
                               <div className="flex items-start space-x-3">
-                                <div className="pt-1">
+                                <div className="pt-1 flex-shrink-0">
                                   {completed ? (
-                                    <CheckCircle className="h-5 w-5 text-green-500" />
+                                    <CheckCircle className="h-6 w-6 text-green-500" />
                                   ) : (
-                                    <Circle className="h-5 w-5 text-muted-foreground" />
+                                    <Circle className="h-6 w-6 text-muted-foreground" />
                                   )}
                                 </div>
                                 
-                                <div className="flex-1 space-y-3">
+                                <div className="flex-1 space-y-3 min-w-0">
                                   <div>
-                                    <h4 className="font-medium text-sm">{item.title}</h4>
+                                    <h4 className="font-medium text-sm md:text-base leading-tight">{item.title}</h4>
                                     {item.description && (
-                                      <p className="text-xs text-muted-foreground mt-1">
+                                      <p className="text-xs md:text-sm text-muted-foreground mt-2 leading-relaxed">
                                         {item.description}
                                       </p>
                                     )}
                                   </div>
                                   
-                                  <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+                                  <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                                     <div className="flex items-center space-x-1">
-                                      <Star className="h-3 w-3" />
+                                      <Star className="h-3 w-3 flex-shrink-0" />
                                       <span>{item.xp_points} XP</span>
                                     </div>
                                     <div className="flex items-center space-x-1">
-                                      <Clock className="h-3 w-3" />
+                                      <Clock className="h-3 w-3 flex-shrink-0" />
                                       <span>{item.unlock_time}</span>
                                     </div>
-                                    <div>
-                                      {item.unlock_days.map(day => weekDays[day]).join(', ')}
+                                    <div className="flex items-center space-x-1">
+                                      <span className="break-words">
+                                        {item.unlock_days.map(day => weekDays[day]).join(', ')}
+                                      </span>
                                     </div>
                                     {item.requires_photo && (
-                                      <div className="flex items-center space-x-1">
-                                        <Camera className="h-3 w-3" />
+                                      <div className="flex items-center space-x-1 text-primary">
+                                        <Camera className="h-3 w-3 flex-shrink-0" />
                                         <span>Foto obrigatória</span>
                                       </div>
                                     )}
                                   </div>
                                   
                                   {!completed && (
-                                    <div className="space-y-3">
+                                    <div className="space-y-4">
                                       <Textarea
                                         placeholder="Adicione uma observação (opcional)..."
                                         value={notes[item.id] || ''}
                                         onChange={(e) => setNotes(prev => ({ ...prev, [item.id]: e.target.value }))}
-                                        rows={2}
-                                        className="text-sm"
+                                        rows={3}
+                                        className="text-sm resize-none border-primary/20 focus:border-primary/40"
                                       />
                                       
                                       {item.requires_photo && (
-                                        <div className="space-y-2">
+                                        <div className="space-y-3">
                                           <input
                                             type="file"
                                             accept="image/*"
@@ -560,8 +562,8 @@ export default function Challenges() {
                                             id={`image-upload-${item.id}`}
                                           />
                                           <label htmlFor={`image-upload-${item.id}`}>
-                                            <Button variant="outline" size="sm" asChild>
-                                              <span className="cursor-pointer gap-2">
+                                            <Button variant="outline" size="default" asChild className="w-full md:w-auto">
+                                              <span className="cursor-pointer gap-2 py-3">
                                                 <Camera className="h-4 w-4" />
                                                 {selectedImage ? 'Trocar Foto' : 'Adicionar Foto'}
                                               </span>
@@ -569,16 +571,16 @@ export default function Challenges() {
                                           </label>
                                           
                                           {imagePreview && (
-                                            <div className="relative">
+                                            <div className="relative bg-gray-50 rounded-xl p-3">
                                               <img
                                                 src={imagePreview}
                                                 alt="Preview"
-                                                className="max-h-32 rounded-md object-cover"
+                                                className="w-full max-h-48 md:max-h-32 rounded-lg object-cover"
                                               />
                                               <Button
                                                 variant="secondary"
                                                 size="sm"
-                                                className="absolute top-1 right-1"
+                                                className="absolute -top-2 -right-2 h-8 w-8 rounded-full shadow-lg"
                                                 onClick={() => {
                                                   setSelectedImage(null);
                                                   setImagePreview('');
@@ -592,10 +594,10 @@ export default function Challenges() {
                                       )}
                                       
                                       <Button
-                                        size="sm"
+                                        size="default"
                                         onClick={() => completeTask(challenge.id, item.id, item.requires_photo, item.xp_points)}
                                         disabled={isCompleting || (item.requires_photo && !selectedImage)}
-                                        className="gap-2"
+                                        className="w-full gap-2 py-3 bg-primary hover:bg-primary/90"
                                       >
                                         {isCompleting ? (
                                           <Loader2 className="h-4 w-4 animate-spin" />
