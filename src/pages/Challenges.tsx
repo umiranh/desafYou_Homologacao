@@ -83,8 +83,7 @@ export default function Challenges() {
           .select(`
             challenges (
               *,
-              challenge_items (*),
-              challenge_rewards (*)
+              challenge_items (*)
             )
           `)
           .eq('user_id', user.id);
@@ -365,10 +364,12 @@ export default function Challenges() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/30 to-secondary/50 pb-20">
-      <header className="bg-background/95 backdrop-blur sticky top-0 z-50 border-b">
-        <div className="container mx-auto px-4 py-4">
-          <h1 className="text-2xl font-bold text-primary">Meus Desafios</h1>
+    <div className="min-h-screen pb-24" style={{ 
+      background: 'linear-gradient(135deg, hsl(345, 25%, 92%) 0%, hsl(25, 30%, 90%) 100%)' 
+    }}>
+      <header className="bg-white/80 backdrop-blur-sm sticky top-0 z-50 border-b border-white/20 shadow-sm">
+        <div className="container mx-auto px-4 py-6">
+          <h1 className="text-2xl font-bold text-primary">💪 Meus Desafios</h1>
         </div>
       </header>
 
@@ -393,18 +394,18 @@ export default function Challenges() {
             const userPosition = getUserPosition(challenge.id);
             
             return (
-              <Card key={challenge.id}>
+              <Card key={challenge.id} className="bg-white/70 backdrop-blur-sm border-0 shadow-lg rounded-3xl overflow-hidden">
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{challenge.title}</CardTitle>
+                    <CardTitle className="text-lg text-primary">{challenge.title}</CardTitle>
                     <div className="flex items-center space-x-2">
                       {userPosition && (
-                        <Badge variant="outline" className="gap-1">
-                          <Medal className="h-3 w-3" />
+                        <Badge variant="outline" className="gap-1 border-primary/20 bg-primary/10">
+                          <Medal className="h-3 w-3 text-primary" />
                           #{userPosition}
                         </Badge>
                       )}
-                      <Badge variant="secondary">
+                      <Badge variant="secondary" className="bg-primary/10 text-primary">
                         {totalXP} / {maxXP} XP
                       </Badge>
                     </div>

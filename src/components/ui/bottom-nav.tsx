@@ -16,33 +16,41 @@ export const BottomNav = ({ currentPage, onNavigate }: BottomNavProps) => {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 pb-safe">
-      <div className="flex items-center justify-around px-4 py-6 max-w-lg mx-auto">
-        {navItems.map((item, index) => (
-          <button
-            key={item.id}
-            onClick={() => onNavigate(item.path)}
-            className={cn(
-              "flex flex-col items-center gap-2 p-3 transition-all duration-300",
-              currentPage === item.id
-                ? "scale-110"
-                : "scale-100"
-            )}
-          >
-            <div className={cn(
-              "p-4 rounded-full transition-all duration-300 shadow-lg",
-              currentPage === item.id 
-                ? "bg-primary text-primary-foreground scale-110 shadow-xl" 
-                : index === 0 
-                  ? "bg-primary text-primary-foreground" 
-                  : "bg-white/80 backdrop-blur-sm text-foreground hover:bg-white/90"
-            )}>
-              <item.icon className="h-6 w-6" />
-            </div>
-            {currentPage !== item.id && (
-              <span className="text-xs font-medium text-foreground/60">{item.label}</span>
-            )}
-          </button>
-        ))}
+      <div className="bg-white/90 backdrop-blur-lg border-t border-white/20 shadow-2xl">
+        <div className="flex items-center justify-around px-4 py-3 max-w-lg mx-auto">
+          {navItems.map((item, index) => {
+            const isActive = currentPage === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => onNavigate(item.path)}
+                className={cn(
+                  "flex flex-col items-center gap-1 p-3 transition-all duration-300 rounded-2xl min-w-[60px]",
+                  isActive
+                    ? "scale-105 bg-primary/10"
+                    : "scale-100 hover:bg-white/50"
+                )}
+              >
+                <div className={cn(
+                  "p-3 rounded-2xl transition-all duration-300 shadow-sm",
+                  isActive 
+                    ? "bg-primary text-white shadow-lg scale-110" 
+                    : "bg-white/70 text-primary/70 hover:bg-white hover:text-primary"
+                )}>
+                  <item.icon className="h-5 w-5" />
+                </div>
+                <span className={cn(
+                  "text-xs font-medium transition-colors duration-300",
+                  isActive 
+                    ? "text-primary font-semibold" 
+                    : "text-primary/60"
+                )}>
+                  {item.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
