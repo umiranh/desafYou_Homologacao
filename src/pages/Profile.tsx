@@ -131,14 +131,31 @@ export default function Profile() {
 
   const uploadAvatar = async (file: File): Promise<string> => {
     const fileExt = file.name.split('.').pop();
-    const fileName = `${user!.id}-avatar.${fileExt}`;
-    const filePath = `avatars/${fileName}`;
+    const fileName = `${user!.id}-avatar-${Date.now()}.${fileExt}`;
+    const filePath = `${user!.id}/${fileName}`;
+
+    // Delete old avatar first if exists
+    if (profile?.avatar_url) {
+      try {
+        const oldPath = profile.avatar_url.split('/').pop();
+        if (oldPath) {
+          await supabase.storage
+            .from('avatars')
+            .remove([`${user!.id}/${oldPath}`]);
+        }
+      } catch (deleteError) {
+        console.warn('Could not delete old avatar:', deleteError);
+      }
+    }
 
     const { error } = await supabase.storage
       .from('avatars')
-      .upload(filePath, file, { upsert: true });
+      .upload(filePath, file, { upsert: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Avatar upload error:', error);
+      throw error;
+    }
 
     const { data } = supabase.storage
       .from('avatars')

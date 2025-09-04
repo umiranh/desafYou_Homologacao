@@ -154,7 +154,7 @@ export default function Dashboard() {
 
       if (error) throw error;
 
-      // Update challenges state
+      // Update challenges state without page reload
       setChallenges(prev => prev.map(challenge => 
         challenge.id === challengeId 
           ? { 

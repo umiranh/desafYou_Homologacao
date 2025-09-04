@@ -195,15 +195,20 @@ export default function Challenges() {
   };
 
   const uploadImage = async (file: File): Promise<string> => {
+    if (!user) throw new Error('User not authenticated');
+
     const fileExt = file.name.split('.').pop();
-    const fileName = `${user!.id}-${Date.now()}.${fileExt}`;
-    const filePath = `progress-photos/${fileName}`;
+    const fileName = `${Date.now()}-${user.id}.${fileExt}`;
+    const filePath = `${user.id}/${fileName}`;
 
     const { error } = await supabase.storage
       .from('progress-photos')
-      .upload(filePath, file);
+      .upload(filePath, file, { upsert: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Upload error:', error);
+      throw error;
+    }
 
     const { data } = supabase.storage
       .from('progress-photos')
@@ -265,47 +270,26 @@ export default function Challenges() {
       setImagePreview('');
       setNotes(prev => ({ ...prev, [taskId]: '' }));
 
-      // Refresh challenges
-      const { data, error: fetchError } = await supabase
-        .from('challenge_enrollments')
-        .select(`
-          challenges (
-            *,
-            challenge_items (*),
-            challenge_rewards (*)
-          )
-        `)
-        .eq('user_id', user.id);
-
-      if (!fetchError && data) {
-        const userChallenges = data
-          .filter(enrollment => enrollment.challenges)
-          .map(enrollment => enrollment.challenges);
-
-        const challengesWithProgress = await Promise.all(
-          userChallenges.map(async (challenge) => {
-            const { data: progressData } = await supabase
-              .from('user_progress')
-              .select('*')
-              .eq('user_id', user.id)
-              .in('challenge_item_id', challenge.challenge_items?.map(item => item.id) || []);
-
-            // Fetch challenge rewards
-            const { data: rewardsData } = await supabase
-              .from('challenge_rewards')
-              .select('*')
-              .eq('challenge_id', challenge.id);
-
-            return {
-              ...challenge,
-              user_progress: progressData || [],
-              challenge_rewards: rewardsData || []
-            };
-          })
-        );
-
-        setChallenges(challengesWithProgress);
-      }
+      // Refresh challenges without page reload - just update local state
+      setChallenges(prev => prev.map(challenge => {
+        if (challenge.id === challengeId) {
+          return {
+            ...challenge,
+            user_progress: [
+              ...challenge.user_progress,
+              {
+                id: `temp-${Date.now()}`,
+                challenge_item_id: taskId,
+                photo_url: photoUrl || undefined,
+                notes: notes[taskId] || undefined,
+                xp_earned: xpPoints,
+                completed_at: new Date().toISOString(),
+              }
+            ]
+          };
+        }
+        return challenge;
+      }));
 
     } catch (error: any) {
       console.error('Error completing task:', error);

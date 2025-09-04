@@ -199,15 +199,20 @@ export default function Community() {
   };
 
   const uploadImage = async (file: File): Promise<string> => {
+    if (!user) throw new Error('User not authenticated');
+
     const fileExt = file.name.split('.').pop();
-    const fileName = `${user!.id}-${Date.now()}.${fileExt}`;
-    const filePath = `post-images/${fileName}`;
+    const fileName = `${Date.now()}-${user.id}.${fileExt}`;
+    const filePath = `${user.id}/${fileName}`;
 
     const { error } = await supabase.storage
       .from('post-images')
-      .upload(filePath, file);
+      .upload(filePath, file, { upsert: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Upload error:', error);
+      throw error;
+    }
 
     const { data } = supabase.storage
       .from('post-images')
@@ -256,8 +261,8 @@ export default function Community() {
       setSelectedImage(null);
       setImagePreview('');
 
-      // Refresh posts - just refetch using the same logic
-      const query = supabase
+      // Update posts locally without page reload
+      const { data: newPostData } = await supabase
         .from('community_posts')
         .select(`
           *,
@@ -274,46 +279,26 @@ export default function Community() {
             created_at
           )
         `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(1);
 
-      const { data, error: fetchError } = await query;
-
-      if (!fetchError && data) {
-        // Get user profiles separately
-        const userIds = [...new Set([
-          ...data.map(post => post.user_id),
-          ...data.flatMap(post => post.post_comments?.map(comment => comment.user_id) || [])
-        ])];
-        
-        const { data: profilesData } = await supabase
+      if (newPostData && newPostData[0]) {
+        const { data: profileData } = await supabase
           .from('profiles')
           .select('user_id, display_name, level')
-          .in('user_id', userIds);
-        
-        const profilesMap = new Map(profilesData?.map(profile => [profile.user_id, profile]) || []);
-        
-        const formattedPosts = data.map(post => {
-          const userProfile = profilesMap.get(post.user_id);
-          
-          return {
-            ...post,
-            profiles: {
-              display_name: userProfile?.display_name || 'Usuário',
-              level: userProfile?.level || 1
-            },
-            post_comments: (post.post_comments || []).map((comment: any) => {
-              const commentProfile = profilesMap.get(comment.user_id);
-              return {
-                ...comment,
-                profiles: {
-                  display_name: commentProfile?.display_name || 'Usuário'
-                }
-              };
-            })
-          };
-        });
-        
-        setPosts(formattedPosts);
+          .eq('user_id', user.id)
+          .single();
+
+        const newPost = {
+          ...newPostData[0],
+          profiles: {
+            display_name: profileData?.display_name || 'Usuário',
+            level: profileData?.level || 1
+          },
+          post_comments: []
+        };
+
+        setPosts(prev => [newPost, ...prev]);
       }
     } catch (error: any) {
       console.error('Error creating post:', error);

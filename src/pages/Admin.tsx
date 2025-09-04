@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { Loader2, ArrowLeft, Plus, Trash2, Camera } from 'lucide-react';
 import { BottomNav } from '@/components/ui/bottom-nav';
 
 interface ChallengeItem {
@@ -41,6 +41,9 @@ export default function Admin() {
     difficulty_level: 'iniciante',
     total_days: '',
   });
+
+  const [selectedCoverImage, setSelectedCoverImage] = useState<File | null>(null);
+  const [coverImagePreview, setCoverImagePreview] = useState<string>('');
 
   const [finalRewards, setFinalRewards] = useState([
     { position: 1, coins_reward: 100 },
@@ -122,6 +125,39 @@ export default function Admin() {
     setChallengeItems(updatedItems);
   };
 
+  const handleCoverImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedCoverImage(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setCoverImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadCoverImage = async (file: File): Promise<string> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}-challenge-cover.${fileExt}`;
+    const filePath = `challenges/${fileName}`;
+
+    const { error } = await supabase.storage
+      .from('challenge-images')
+      .upload(filePath, file, { upsert: false });
+
+    if (error) {
+      console.error('Upload error:', error);
+      throw error;
+    }
+
+    const { data } = supabase.storage
+      .from('challenge-images')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -142,6 +178,21 @@ export default function Admin() {
       const endDate = new Date(challengeData.end_date);
       const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
 
+      // Upload cover image if selected
+      let imageUrl = null;
+      if (selectedCoverImage) {
+        try {
+          imageUrl = await uploadCoverImage(selectedCoverImage);
+        } catch (uploadError: any) {
+          console.error('Error uploading image:', uploadError);
+          toast({
+            title: "Erro no upload da imagem",
+            description: "A imagem não pôde ser enviada. O desafio será criado sem imagem personalizada.",
+            variant: "destructive",
+          });
+        }
+      }
+
       // Create challenge
       const { data: challenge, error: challengeError } = await supabase
         .from('challenges')
@@ -155,6 +206,7 @@ export default function Admin() {
           daily_time_minutes: challengeData.daily_time_minutes ? parseInt(challengeData.daily_time_minutes) : null,
           difficulty_level: challengeData.difficulty_level,
           total_days: totalDays,
+          image_url: imageUrl,
           created_by: user!.id,
         })
         .select()
@@ -230,6 +282,8 @@ export default function Admin() {
         { position: 2, coins_reward: 50 },
         { position: 3, coins_reward: 25 },
       ]);
+      setSelectedCoverImage(null);
+      setCoverImagePreview('');
 
     } catch (error: any) {
       console.error('Error creating challenge:', error);
@@ -389,6 +443,40 @@ export default function Admin() {
                   onChange={(e) => setChallengeData({ ...challengeData, max_participants: e.target.value })}
                   placeholder="Deixe vazio para ilimitado"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cover_image">Foto de Capa do Desafio</Label>
+                <div className="space-y-2">
+                  {coverImagePreview && (
+                    <div className="relative w-full h-32 rounded-lg overflow-hidden">
+                      <img 
+                        src={coverImagePreview} 
+                        alt="Preview da capa" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCoverImageSelect}
+                    className="hidden"
+                    id="cover-image-upload"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById('cover-image-upload')?.click()}
+                    className="w-full"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    {coverImagePreview ? 'Alterar Foto de Capa' : 'Escolher Foto de Capa'}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Se não escolher uma foto, será usada uma imagem padrão automaticamente.
+                  </p>
+                </div>
               </div>
             </form>
           </CardContent>
