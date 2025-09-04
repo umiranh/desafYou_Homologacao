@@ -117,8 +117,7 @@ export default function Admin() {
           .from('challenges')
           .select(`
             *,
-            challenge_enrollments(count),
-            challenge_rankings(count)
+            challenge_enrollments(count)
           `)
           .eq('is_active', true)
           .eq('is_finished', false)
@@ -360,8 +359,7 @@ export default function Admin() {
         .from('challenges')
         .select(`
           *,
-          challenge_enrollments(count),
-          challenge_rankings(count)
+          challenge_enrollments(count)
         `)
         .eq('is_active', true)
         .eq('is_finished', false)
