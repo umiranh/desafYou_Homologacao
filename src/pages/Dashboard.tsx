@@ -8,10 +8,11 @@ import { BottomNav } from '@/components/ui/bottom-nav';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Search, Filter, Trophy, Users, Calendar, Star, Loader2, Plus, Settings } from 'lucide-react';
+import { Search, Filter, Trophy, Users, Calendar, Star, Loader2, Plus, Settings, ArrowLeft, Flame } from 'lucide-react';
 import fitnessChallenge1 from '@/assets/fitness-challenge-1.jpg';
 import fitnessChallenge2 from '@/assets/fitness-challenge-2.jpg';
 import fitnessChallenge3 from '@/assets/fitness-challenge-3.jpg';
+import { ChallengeDetailModal } from '@/components/ChallengeDetailModal';
 
 interface Challenge {
   id: string;
@@ -40,11 +41,12 @@ export default function Dashboard() {
   const { user, loading, signOut } = useAuth();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState('all');
+  const [selectedLevel, setSelectedLevel] = useState('all');
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loadingChallenges, setLoadingChallenges] = useState(true);
   const [enrollingChallenges, setEnrollingChallenges] = useState<Set<string>>(new Set());
+  const [selectedChallenge, setSelectedChallenge] = useState<Challenge | null>(null);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -189,10 +191,12 @@ export default function Dashboard() {
     const matchesSearch = challenge.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          challenge.description.toLowerCase().includes(searchQuery.toLowerCase());
     
-    const matchesFilter = activeFilter === 'all' || 
-                         (activeFilter === 'enrolled' && challenge.user_enrolled);
+    const matchesLevel = selectedLevel === 'all' || selectedLevel === 'enrolled' ||
+                        challenge.title.toLowerCase().includes(selectedLevel.toLowerCase());
     
-    return matchesSearch && matchesFilter;
+    const matchesEnrolled = selectedLevel !== 'enrolled' || challenge.user_enrolled;
+    
+    return matchesSearch && matchesLevel && matchesEnrolled;
   });
 
   const formatDate = (dateString: string) => {
@@ -224,15 +228,29 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/30 to-secondary/50 pb-20">
-      <header className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
+    <div className="min-h-screen bg-gradient-to-br from-secondary/20 via-background to-secondary/30 pb-20">
+      <header className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-6 max-w-md mx-auto">
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-primary">DesafYOU</h1>
-              <p className="text-muted-foreground text-sm">Olá, {profile?.display_name || 'Usuário'}!</p>
+              <h1 className="text-3xl font-bold text-foreground mb-2">Escolha</h1>
+              <h2 className="text-3xl font-bold text-foreground">seu desafio!</h2>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-3">
+              <div className="text-right">
+                <p className="text-sm font-medium">{profile?.total_xp || 0} XP</p>
+                <p className="text-xs text-muted-foreground">Nível {profile?.level || 1}</p>
+              </div>
+              <div className="relative">
+                <div className="h-12 w-12 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center">
+                  <Trophy className="h-6 w-6 text-primary-foreground" />
+                </div>
+                {profile?.level && profile.level > 1 && (
+                  <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                    {profile.level}
+                  </div>
+                )}
+              </div>
               {profile?.is_admin && (
                 <Button
                   variant="ghost"
@@ -240,27 +258,45 @@ export default function Dashboard() {
                   onClick={() => navigate('/admin')}
                   className="gap-2"
                 >
-                  <Plus className="h-4 w-4" />
-                  Admin
+                  <Settings className="h-4 w-4" />
                 </Button>
               )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={signOut}
-                className="gap-2"
-              >
-                <Settings className="h-4 w-4" />
-                Sair
-              </Button>
-              <div className="text-right">
-                <p className="text-sm font-medium">{profile?.total_xp || 0} XP</p>
-                <p className="text-xs text-muted-foreground">Nível {profile?.level || 1}</p>
-              </div>
-              <div className="h-10 w-10 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center">
-                <Trophy className="h-5 w-5 text-primary-foreground" />
-              </div>
             </div>
+          </div>
+
+          <div className="flex gap-1 mb-6 bg-card/30 backdrop-blur rounded-full p-1 max-w-sm mx-auto">
+            <Button 
+              variant={selectedLevel === 'all' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setSelectedLevel('all')}
+              className="rounded-full flex-1 text-xs py-2"
+            >
+              Todos
+            </Button>
+            <Button 
+              variant={selectedLevel === 'iniciante' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setSelectedLevel('iniciante')}
+              className="rounded-full flex-1 text-xs py-2"
+            >
+              Iniciante
+            </Button>
+            <Button 
+              variant={selectedLevel === 'intermediário' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setSelectedLevel('intermediário')}
+              className="rounded-full flex-1 text-xs py-2"
+            >
+              Intermediário
+            </Button>
+            <Button 
+              variant={selectedLevel === 'avançado' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setSelectedLevel('avançado')}
+              className="rounded-full flex-1 text-xs py-2"
+            >
+              Avançado
+            </Button>
           </div>
 
           <div className="relative mb-4">
@@ -269,153 +305,149 @@ export default function Dashboard() {
               placeholder="Buscar desafios..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-background/50"
+              className="pl-10 bg-card/50 border-border/50 rounded-xl"
             />
-          </div>
-
-          <div className="flex space-x-2 overflow-x-auto pb-2">
-            <Button 
-              variant={activeFilter === 'all' ? 'default' : 'outline'} 
-              size="sm"
-              onClick={() => setActiveFilter('all')}
-            >
-              Todos
-            </Button>
-            <Button 
-              variant={activeFilter === 'enrolled' ? 'default' : 'outline'} 
-              size="sm"
-              onClick={() => setActiveFilter('enrolled')}
-            >
-              Meus Desafios
-            </Button>
           </div>
         </div>
       </header>
 
-      <div className="container mx-auto px-4 pb-20">
+      <div className="container mx-auto px-4 pb-20 max-w-md mx-auto">
         {loadingChallenges ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin" />
           </div>
-        ) : filteredChallenges.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">
-              {searchQuery || activeFilter !== 'all' 
-                ? 'Nenhum desafio encontrado com os filtros aplicados.' 
-                : 'Nenhum desafio disponível no momento.'}
-            </p>
-            {profile?.is_admin && (
-              <Button
-                className="mt-4"
-                onClick={() => navigate('/admin')}
-              >
-                Criar Primeiro Desafio
-              </Button>
-            )}
-          </div>
         ) : (
-          <div className="grid gap-4">
-            {filteredChallenges.map((challenge) => {
-              const daysRemaining = getDaysRemaining(challenge.end_date);
-              const defaultImages = [fitnessChallenge1, fitnessChallenge2, fitnessChallenge3];
-              const imageIndex = parseInt(challenge.id) % defaultImages.length;
-              
-              return (
-                <Card key={challenge.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                  <div className="aspect-video relative overflow-hidden">
-                    <img
-                      src={challenge.image_url || defaultImages[imageIndex]}
-                      alt={challenge.title}
-                      className="object-cover w-full h-full"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = defaultImages[imageIndex];
-                      }}
-                    />
-                    <div className="absolute top-2 left-2">
-                      <Badge variant="secondary" className="bg-background/80">
-                        {daysRemaining > 0 ? `${daysRemaining} dias restantes` : 'Finalizado'}
-                      </Badge>
-                    </div>
-                    <div className="absolute top-2 right-2">
-                      <Badge 
-                        variant={challenge.user_enrolled ? 'default' : 'outline'}
-                        className={challenge.user_enrolled ? 'bg-primary' : 'bg-background/80'}
-                      >
-                        {challenge.user_enrolled ? 'Inscrito' : 'Disponível'}
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  <CardContent className="p-4">
-                    <div className="space-y-3">
-                      <div>
-                        <h3 className="font-bold text-lg leading-tight">{challenge.title}</h3>
-                        <p className="text-muted-foreground text-sm mt-1 line-clamp-2">
-                          {challenge.description}
-                        </p>
-                      </div>
-                      
-                      <div className="flex items-center justify-between text-sm text-muted-foreground">
-                        <div className="flex items-center space-x-4">
-                          <div className="flex items-center space-x-1">
-                            <Users className="h-4 w-4" />
-                            <span>{challenge.participants_count}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <Calendar className="h-4 w-4" />
-                            <span>{formatDate(challenge.start_date)} - {formatDate(challenge.end_date)}</span>
-                          </div>
-                        </div>
-                      </div>
+          <div className="space-y-6">
+            {/* Em Alta Section */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Flame className="h-5 w-5 text-primary" />
+                <h3 className="text-xl font-bold">Em alta</h3>
+              </div>
+              <div className="grid grid-cols-1 gap-4 max-w-sm mx-auto">
+                {filteredChallenges.slice(0, 3).map((challenge) => (
+                  <ChallengeCard 
+                    key={challenge.id}
+                    challenge={challenge}
+                    onClick={() => setSelectedChallenge(challenge)}
+                  />
+                ))}
+              </div>
+            </div>
 
-                      {challenge.max_participants && (
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Vagas</span>
-                            <span className="font-medium">
-                              {challenge.participants_count}/{challenge.max_participants}
-                            </span>
-                          </div>
-                          <div className="w-full bg-muted rounded-full h-2">
-                            <div 
-                              className="bg-gradient-to-r from-primary to-accent h-2 rounded-full transition-all duration-300"
-                              style={{ 
-                                width: `${Math.min(100, (challenge.participants_count! / challenge.max_participants) * 100)}%` 
-                              }}
-                            ></div>
-                          </div>
-                        </div>
-                      )}
-                      
-                      <Button 
-                        className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
-                        disabled={challenge.user_enrolled || enrollingChallenges.has(challenge.id) || (challenge.max_participants && challenge.participants_count! >= challenge.max_participants)}
-                        onClick={() => enrollInChallenge(challenge.id)}
-                      >
-                        {enrollingChallenges.has(challenge.id) ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                            Inscrevendo...
-                          </>
-                        ) : challenge.user_enrolled ? (
-                          'Já Inscrito'
-                        ) : challenge.max_participants && challenge.participants_count! >= challenge.max_participants ? (
-                          'Vagas Esgotadas'
-                        ) : (
-                          'Participar'
-                        )}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+            {/* Novidade Section */}
+            {filteredChallenges.length > 3 && (
+              <div className="mb-6">
+                <h3 className="text-xl font-bold mb-4">Novidade</h3>
+                <div className="grid grid-cols-1 gap-4 max-w-sm mx-auto">
+                  {filteredChallenges.slice(3).map((challenge) => (
+                    <ChallengeCard 
+                      key={challenge.id}
+                      challenge={challenge}
+                      onClick={() => setSelectedChallenge(challenge)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {filteredChallenges.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">
+                  {searchQuery || selectedLevel !== 'all' 
+                    ? 'Nenhum desafio encontrado com os filtros aplicados.' 
+                    : 'Nenhum desafio disponível no momento.'}
+                </p>
+                {profile?.is_admin && (
+                  <Button
+                    className="mt-4"
+                    onClick={() => navigate('/admin')}
+                  >
+                    Criar Primeiro Desafio
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
+
+      {/* Challenge Detail Modal */}
+      {selectedChallenge && (
+        <ChallengeDetailModal
+          challenge={selectedChallenge}
+          onClose={() => setSelectedChallenge(null)}
+          onEnroll={() => {
+            enrollInChallenge(selectedChallenge.id);
+            setSelectedChallenge(null);
+          }}
+          isEnrolling={enrollingChallenges.has(selectedChallenge.id)}
+        />
+      )}
 
       <BottomNav currentPage="dashboard" onNavigate={(path) => navigate(path)} />
     </div>
   );
 }
+
+// Challenge Card Component
+const ChallengeCard = ({ challenge, onClick }: { 
+  challenge: Challenge; 
+  onClick: () => void; 
+}) => {
+  const defaultImages = [fitnessChallenge1, fitnessChallenge2, fitnessChallenge3];
+  const imageIndex = parseInt(challenge.id) % defaultImages.length;
+  
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+    });
+  };
+
+  const getDaysRemaining = (endDate: string) => {
+    const end = new Date(endDate);
+    const now = new Date();
+    const diffTime = end.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 0;
+  };
+
+  return (
+    <Card 
+      className="overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer group bg-card/80 backdrop-blur border-border/50"
+      onClick={onClick}
+    >
+      <div className="aspect-[4/3] relative overflow-hidden">
+        <img
+          src={challenge.image_url || defaultImages[imageIndex]}
+          alt={challenge.title}
+          className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.src = defaultImages[imageIndex];
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        <div className="absolute bottom-3 left-3 right-3">
+          <h3 className="font-bold text-white text-lg leading-tight mb-1">
+            {challenge.title}
+          </h3>
+          <p className="text-white/90 text-sm">Maria Fernanda</p>
+          <div className="flex items-center mt-1">
+            {[...Array(5)].map((_, i) => (
+              <Star 
+                key={i} 
+                className={`h-3 w-3 ${i < 4 ? 'text-yellow-400 fill-current' : 'text-white/40'}`} 
+              />
+            ))}
+            <span className="ml-2 text-white/90 text-sm font-medium">
+              {challenge.participants_count || 0}
+            </span>
+            <Users className="h-3 w-3 ml-1 text-white/90" />
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+};
