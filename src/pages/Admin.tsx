@@ -8,8 +8,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ArrowLeft, Plus, Trash2, Camera } from 'lucide-react';
+import { Loader2, ArrowLeft, Plus, Trash2, Camera, Crown, Users, Calendar } from 'lucide-react';
 import { BottomNav } from '@/components/ui/bottom-nav';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 
 interface ChallengeItem {
   id?: string;
@@ -29,6 +31,9 @@ export default function Admin() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [checkingAdmin, setCheckingAdmin] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [activeChallenges, setActiveChallenges] = useState<any[]>([]);
+  const [loadingChallenges, setLoadingChallenges] = useState(false);
+  const [finalizingChallenge, setFinalizingChallenge] = useState<string | null>(null);
 
   const [challengeData, setChallengeData] = useState({
     title: '',
@@ -100,6 +105,41 @@ export default function Admin() {
       checkAdminStatus();
     }
   }, [user, loading, navigate, toast]);
+
+  // Load active challenges
+  useEffect(() => {
+    const loadActiveChallenges = async () => {
+      if (!isAdmin) return;
+      
+      setLoadingChallenges(true);
+      try {
+        const { data, error } = await supabase
+          .from('challenges')
+          .select(`
+            *,
+            challenge_enrollments(count),
+            challenge_rankings(count)
+          `)
+          .eq('is_active', true)
+          .eq('is_finished', false)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        setActiveChallenges(data || []);
+      } catch (error) {
+        console.error('Error loading challenges:', error);
+        toast({
+          title: "Erro",
+          description: "Falha ao carregar desafios ativos",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingChallenges(false);
+      }
+    };
+
+    loadActiveChallenges();
+  }, [isAdmin, toast]);
 
   const addChallengeItem = () => {
     setChallengeItems([...challengeItems, {
@@ -297,6 +337,52 @@ export default function Admin() {
     }
   };
 
+  const handleFinalizeChallengeManually = async (challengeId: string, giveRewards: boolean) => {
+    setFinalizingChallenge(challengeId);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('finalize-challenge-manually', {
+        body: { 
+          challengeId,
+          giveRewards
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Desafio finalizado",
+        description: `Desafio finalizado com sucesso. ${giveRewards ? 'Recompensas distribuídas.' : 'Sem recompensas distribuídas.'}`,
+      });
+
+      // Reload active challenges
+      const { data: updatedChallenges, error: reloadError } = await supabase
+        .from('challenges')
+        .select(`
+          *,
+          challenge_enrollments(count),
+          challenge_rankings(count)
+        `)
+        .eq('is_active', true)
+        .eq('is_finished', false)
+        .order('created_at', { ascending: false });
+
+      if (!reloadError) {
+        setActiveChallenges(updatedChallenges || []);
+      }
+
+    } catch (error) {
+      console.error('Error finalizing challenge:', error);
+      toast({
+        title: "Erro",
+        description: "Falha ao finalizar desafio",
+        variant: "destructive",
+      });
+    } finally {
+      setFinalizingChallenge(null);
+    }
+  };
+
   if (loading || checkingAdmin) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -337,7 +423,92 @@ export default function Admin() {
         </div>
       </header>
 
-      <div className="container max-w-2xl mx-auto p-4 space-y-6">
+      <div className="container max-w-4xl mx-auto p-4 space-y-6">
+        {/* Active Challenges Management */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Crown className="h-5 w-5" />
+              Gerenciar Desafios Ativos
+            </CardTitle>
+            <CardDescription>
+              Finalize desafios antes do prazo e escolha se deseja distribuir recompensas
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loadingChallenges ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            ) : activeChallenges.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">
+                Nenhum desafio ativo encontrado
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {activeChallenges.map((challenge) => (
+                  <div key={challenge.id} className="border rounded-lg p-4 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <h3 className="font-semibold">{challenge.title}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {challenge.description}
+                        </p>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <Users className="h-4 w-4" />
+                            {challenge.challenge_enrollments?.[0]?.count || 0} participantes
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            Termina em: {new Date(challenge.end_date).toLocaleDateString('pt-BR')}
+                          </div>
+                        </div>
+                      </div>
+                      <Badge variant={challenge.is_active ? "default" : "secondary"}>
+                        {challenge.is_active ? "Ativo" : "Inativo"}
+                      </Badge>
+                    </div>
+                    
+                    <div className="flex items-center justify-between pt-2 border-t">
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Switch 
+                            id={`rewards-${challenge.id}`}
+                            defaultChecked={true}
+                          />
+                          <Label htmlFor={`rewards-${challenge.id}`} className="text-sm">
+                            Distribuir recompensas baseadas no ranking atual
+                          </Label>
+                        </div>
+                      </div>
+                      
+                      <Button
+                        onClick={() => {
+                          const giveRewards = (document.getElementById(`rewards-${challenge.id}`) as HTMLInputElement)?.checked ?? true;
+                          handleFinalizeChallengeManually(challenge.id, giveRewards);
+                        }}
+                        disabled={finalizingChallenge === challenge.id}
+                        variant="destructive"
+                        size="sm"
+                      >
+                        {finalizingChallenge === challenge.id ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            Finalizando...
+                          </>
+                        ) : (
+                          'Finalizar Desafio'
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Informações do Desafio</CardTitle>

@@ -1,1 +1,4 @@
 project_id = "pdshsnymrybpysrvdlof"
+
+[functions.finalize-challenge-manually]
+verify_jwt = true

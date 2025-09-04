@@ -185,10 +185,12 @@ export type Database = {
           description: string
           difficulty_level: string | null
           end_date: string
+          give_rewards_on_manual_finalization: boolean | null
           id: string
           image_url: string | null
           is_active: boolean | null
           is_finished: boolean | null
+          manually_finalized: boolean | null
           max_participants: number | null
           start_date: string
           title: string
@@ -203,10 +205,12 @@ export type Database = {
           description: string
           difficulty_level?: string | null
           end_date: string
+          give_rewards_on_manual_finalization?: boolean | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null
           is_finished?: boolean | null
+          manually_finalized?: boolean | null
           max_participants?: number | null
           start_date: string
           title: string
@@ -221,10 +225,12 @@ export type Database = {
           description?: string
           difficulty_level?: string | null
           end_date?: string
+          give_rewards_on_manual_finalization?: boolean | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null
           is_finished?: boolean | null
+          manually_finalized?: boolean | null
           max_participants?: number | null
           start_date?: string
           title?: string

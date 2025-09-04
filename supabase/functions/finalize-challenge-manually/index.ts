@@ -88,18 +88,32 @@ serve(async (req) => {
 
     // Calculate user XP for this challenge
     const userXpData = []
+    
+    // First get all challenge items for this challenge
+    const { data: challengeItems, error: challengeItemsError } = await supabase
+      .from('challenge_items')
+      .select('id')
+      .eq('challenge_id', challengeId)
+
+    if (challengeItemsError) {
+      console.error('Error fetching challenge items:', challengeItemsError)
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch challenge items' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    const challengeItemIds = challengeItems?.map(item => item.id) || []
+
     for (const enrollment of enrollments || []) {
       const { data: userProgress } = await supabase
         .from('user_progress')
-        .select('xp_earned, challenge_item_id')
+        .select('xp_earned')
         .eq('user_id', enrollment.user_id)
-        .in('challenge_item_id', 
-          await supabase
-            .from('challenge_items')
-            .select('id')
-            .eq('challenge_id', challengeId)
-            .then(res => res.data?.map(item => item.id) || [])
-        )
+        .in('challenge_item_id', challengeItemIds)
 
       const totalXp = userProgress?.reduce((sum, progress) => sum + (progress.xp_earned || 0), 0) || 0
       userXpData.push({
@@ -144,23 +158,32 @@ serve(async (req) => {
         .eq('challenge_id', challengeId)
 
       if (!rewardsError && rewards) {
-        for (const reward of rewards) {
-          const winnersAtPosition = rankings.filter(r => r.position === reward.position)
-          
-          for (const winner of winnersAtPosition) {
-            const { error: updateCoinsError } = await supabase
-              .from('profiles')
-              .update({ 
-                coins: supabase.rpc('increment_coins', { amount: reward.coins_reward }),
-                updated_at: new Date().toISOString()
-              })
-              .eq('user_id', winner.user_id)
+      for (const reward of rewards) {
+        const winnersAtPosition = rankings.filter(r => r.position === reward.position)
+        
+        for (const winner of winnersAtPosition) {
+          // Get current coins
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('coins')
+            .eq('user_id', winner.user_id)
+            .single()
 
-            if (updateCoinsError) {
-              console.error('Error updating coins for user:', winner.user_id, updateCoinsError)
-            }
+          const currentCoins = profile?.coins || 0
+          
+          const { error: updateCoinsError } = await supabase
+            .from('profiles')
+            .update({ 
+              coins: currentCoins + reward.coins_reward,
+              updated_at: new Date().toISOString()
+            })
+            .eq('user_id', winner.user_id)
+
+          if (updateCoinsError) {
+            console.error('Error updating coins for user:', winner.user_id, updateCoinsError)
           }
         }
+      }
       }
     }
 
