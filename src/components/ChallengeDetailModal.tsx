@@ -2,6 +2,8 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Clock, Zap, Users, Timer, Flame } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import fitnessChallenge1 from '@/assets/fitness-challenge-1.jpg';
 import fitnessChallenge2 from '@/assets/fitness-challenge-2.jpg';
 import fitnessChallenge3 from '@/assets/fitness-challenge-3.jpg';
@@ -40,12 +42,54 @@ export function ChallengeDetailModal({ challenge, onClose, onEnroll, isEnrolling
     return diffDays;
   };
 
-  const mockParticipants = [
-    { id: 1, avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=100&h=100&fit=crop&crop=face" },
-    { id: 2, avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face" },
-    { id: 3, avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face" },
-    { id: 4, avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face" },
-  ];
+  const [realParticipants, setRealParticipants] = useState<Array<{id: string, display_name: string, avatar_url?: string}>>([]);
+  const [challengeDetails, setChallengeDetails] = useState<{daily_calories?: number, daily_time_minutes?: number, total_days?: number}>({});
+
+  // Fetch real participants and challenge details
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch real participants using separate queries
+        const { data: enrollments } = await supabase
+          .from('challenge_enrollments')
+          .select('user_id')
+          .eq('challenge_id', challenge.id)
+          .limit(4);
+
+        if (enrollments && enrollments.length > 0) {
+          const userIds = enrollments.map(e => e.user_id);
+          const { data: profilesData } = await supabase
+            .from('profiles')
+            .select('user_id, display_name, avatar_url')
+            .in('user_id', userIds);
+
+          if (profilesData) {
+            const participants = profilesData.map(profile => ({
+              id: profile.user_id,
+              display_name: profile.display_name || 'Usuário',
+              avatar_url: profile.avatar_url
+            }));
+            setRealParticipants(participants);
+          }
+        }
+
+        // Fetch additional challenge details
+        const { data: challengeData } = await supabase
+          .from('challenges')
+          .select('daily_calories, daily_time_minutes, total_days')
+          .eq('id', challenge.id)
+          .single();
+
+        if (challengeData) {
+          setChallengeDetails(challengeData);
+        }
+      } catch (error) {
+        console.error('Error fetching challenge data:', error);
+      }
+    };
+
+    fetchData();
+  }, [challenge.id]);
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -109,7 +153,9 @@ export function ChallengeDetailModal({ challenge, onClose, onEnroll, isEnrolling
               </div>
               <div className="flex items-center gap-2 bg-card/50 px-4 py-2 rounded-full flex-1">
                 <Zap className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium">14.400 kcal</span>
+                <span className="text-sm font-medium">
+                  {challengeDetails.daily_calories ? `${challengeDetails.daily_calories * (challengeDetails.total_days || 1)} kcal` : '14.400 kcal'}
+                </span>
               </div>
             </div>
 
@@ -124,6 +170,7 @@ export function ChallengeDetailModal({ challenge, onClose, onEnroll, isEnrolling
                   variant="ghost"
                   size="sm"
                   className="bg-foreground text-background hover:bg-foreground/90 rounded-full px-4"
+                  onClick={() => window.location.href = `/community?challenge=${challenge.id}`}
                 >
                   Ver comunidade
                 </Button>
@@ -131,22 +178,33 @@ export function ChallengeDetailModal({ challenge, onClose, onEnroll, isEnrolling
 
               {/* Participants Avatars */}
               <div className="flex -space-x-2">
-                {mockParticipants.map((participant) => (
+                {realParticipants.map((participant) => (
                   <div
                     key={participant.id}
-                    className="h-10 w-10 rounded-full border-2 border-background overflow-hidden"
+                    className="h-10 w-10 rounded-full border-2 border-background overflow-hidden bg-primary/10 flex items-center justify-center"
                   >
-                    <img
-                      src={participant.avatar}
-                      alt="Participant"
-                      className="h-full w-full object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = `https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=100&h=100&fit=crop&crop=face`;
-                      }}
-                    />
+                    {participant.avatar_url ? (
+                      <img
+                        src={participant.avatar_url}
+                        alt={participant.display_name}
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <span className="text-sm font-bold text-primary">
+                        {participant.display_name.charAt(0).toUpperCase()}
+                      </span>
+                    )}
                   </div>
                 ))}
+                {realParticipants.length === 0 && (
+                  <div className="h-10 w-10 rounded-full border-2 border-background bg-muted flex items-center justify-center">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                )}
               </div>
 
               {/* Stats Row */}
@@ -156,7 +214,9 @@ export function ChallengeDetailModal({ challenge, onClose, onEnroll, isEnrolling
                     <Timer className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium">1h30min</p>
+                    <p className="text-sm font-medium">
+                      {challengeDetails.daily_time_minutes ? `${Math.floor(challengeDetails.daily_time_minutes / 60)}h${challengeDetails.daily_time_minutes % 60}min` : '1h30min'}
+                    </p>
                     <p className="text-xs text-muted-foreground">Diários</p>
                   </div>
                 </div>
@@ -165,7 +225,9 @@ export function ChallengeDetailModal({ challenge, onClose, onEnroll, isEnrolling
                     <Flame className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium">680 kcal</p>
+                    <p className="text-sm font-medium">
+                      {challengeDetails.daily_calories ? `${challengeDetails.daily_calories} kcal` : '680 kcal'}
+                    </p>
                     <p className="text-xs text-muted-foreground">Calorias</p>
                   </div>
                 </div>

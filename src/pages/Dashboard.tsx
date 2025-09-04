@@ -230,11 +230,11 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-secondary/20 via-background to-secondary/30 pb-20">
       <header className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-6 max-w-md mx-auto">
-          <div className="flex items-center justify-between mb-6">
+        <div className="container mx-auto px-4 py-3 max-w-md mx-auto">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-3xl font-bold text-foreground mb-2">Escolha</h1>
-              <h2 className="text-3xl font-bold text-foreground">seu desafio!</h2>
+              <h1 className="text-2xl font-bold text-foreground mb-1">Escolha</h1>
+              <h2 className="text-2xl font-bold text-foreground">seu desafio!</h2>
             </div>
             <div className="flex items-center space-x-3">
               <div className="text-right">
@@ -242,11 +242,11 @@ export default function Dashboard() {
                 <p className="text-xs text-muted-foreground">Nível {profile?.level || 1}</p>
               </div>
               <div className="relative">
-                <div className="h-12 w-12 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center">
-                  <Trophy className="h-6 w-6 text-primary-foreground" />
+                <div className="h-10 w-10 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center">
+                  <Trophy className="h-5 w-5 text-primary-foreground" />
                 </div>
                 {profile?.level && profile.level > 1 && (
-                  <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                  <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-4 w-4 flex items-center justify-center font-bold">
                     {profile.level}
                   </div>
                 )}
@@ -264,7 +264,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="flex gap-1 mb-6 bg-card/30 backdrop-blur rounded-full p-1 max-w-sm mx-auto">
+          <div className="flex gap-1 mb-4 bg-card/30 backdrop-blur rounded-full p-1 max-w-sm mx-auto">
             <Button 
               variant={selectedLevel === 'all' ? 'default' : 'ghost'}
               size="sm"
@@ -299,7 +299,7 @@ export default function Dashboard() {
             </Button>
           </div>
 
-          <div className="relative mb-4">
+          <div className="relative mb-3">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               placeholder="Buscar desafios..."
@@ -317,35 +317,37 @@ export default function Dashboard() {
             <Loader2 className="h-8 w-8 animate-spin" />
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Em Alta Section */}
-            <div className="mb-6">
-              <div className="flex items-center gap-2 mb-4">
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-3">
                 <Flame className="h-5 w-5 text-primary" />
-                <h3 className="text-xl font-bold">Em alta</h3>
+                <h3 className="text-lg font-bold">Em alta</h3>
               </div>
-              <div className="grid grid-cols-1 gap-4 max-w-sm mx-auto">
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
                 {filteredChallenges.slice(0, 3).map((challenge) => (
-                  <ChallengeCard 
-                    key={challenge.id}
-                    challenge={challenge}
-                    onClick={() => setSelectedChallenge(challenge)}
-                  />
+                  <div key={challenge.id} className="flex-shrink-0 w-64">
+                    <ChallengeCard 
+                      challenge={challenge}
+                      onClick={() => setSelectedChallenge(challenge)}
+                    />
+                  </div>
                 ))}
               </div>
             </div>
 
             {/* Novidade Section */}
             {filteredChallenges.length > 3 && (
-              <div className="mb-6">
-                <h3 className="text-xl font-bold mb-4">Novidade</h3>
-                <div className="grid grid-cols-1 gap-4 max-w-sm mx-auto">
-                  {filteredChallenges.slice(3).map((challenge) => (
-                    <ChallengeCard 
-                      key={challenge.id}
-                      challenge={challenge}
-                      onClick={() => setSelectedChallenge(challenge)}
-                    />
+              <div className="mb-4">
+                <h3 className="text-lg font-bold mb-3">Novidade</h3>
+                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                  {filteredChallenges.slice(3, 6).map((challenge) => (
+                    <div key={challenge.id} className="flex-shrink-0 w-64">
+                      <ChallengeCard 
+                        challenge={challenge}
+                        onClick={() => setSelectedChallenge(challenge)}
+                      />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -418,7 +420,7 @@ const ChallengeCard = ({ challenge, onClick }: {
       className="overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer group bg-card/80 backdrop-blur border-border/50"
       onClick={onClick}
     >
-      <div className="aspect-[4/3] relative overflow-hidden">
+      <div className="aspect-[3/2] relative overflow-hidden">
         <img
           src={challenge.image_url || defaultImages[imageIndex]}
           alt={challenge.title}
@@ -429,22 +431,23 @@ const ChallengeCard = ({ challenge, onClick }: {
           }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-        <div className="absolute bottom-3 left-3 right-3">
-          <h3 className="font-bold text-white text-lg leading-tight mb-1">
+        <div className="absolute bottom-2 left-2 right-2">
+          <h3 className="font-bold text-white text-sm leading-tight mb-1">
             {challenge.title}
           </h3>
-          <p className="text-white/90 text-sm">Maria Fernanda</p>
-          <div className="flex items-center mt-1">
-            {[...Array(5)].map((_, i) => (
-              <Star 
-                key={i} 
-                className={`h-3 w-3 ${i < 4 ? 'text-yellow-400 fill-current' : 'text-white/40'}`} 
-              />
-            ))}
-            <span className="ml-2 text-white/90 text-sm font-medium">
-              {challenge.participants_count || 0}
-            </span>
-            <Users className="h-3 w-3 ml-1 text-white/90" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              {[...Array(5)].map((_, i) => (
+                <Star 
+                  key={i} 
+                  className={`h-2.5 w-2.5 ${i < 4 ? 'text-yellow-400 fill-current' : 'text-white/40'}`} 
+                />
+              ))}
+            </div>
+            <div className="flex items-center text-white/90 text-xs">
+              <span className="font-medium">{challenge.participants_count || 0}</span>
+              <Users className="h-2.5 w-2.5 ml-1" />
+            </div>
           </div>
         </div>
       </div>

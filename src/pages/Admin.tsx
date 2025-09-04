@@ -36,7 +36,17 @@ export default function Admin() {
     start_date: '',
     end_date: '',
     max_participants: '',
+    daily_calories: '',
+    daily_time_minutes: '',
+    difficulty_level: 'iniciante',
+    total_days: '',
   });
+
+  const [finalRewards, setFinalRewards] = useState([
+    { position: 1, coins_reward: 100 },
+    { position: 2, coins_reward: 50 },
+    { position: 3, coins_reward: 25 },
+  ]);
 
   const [challengeItems, setChallengeItems] = useState<ChallengeItem[]>([
     {
@@ -127,6 +137,11 @@ export default function Admin() {
     setIsCreating(true);
 
     try {
+      // Calculate total days automatically
+      const startDate = new Date(challengeData.start_date);
+      const endDate = new Date(challengeData.end_date);
+      const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+
       // Create challenge
       const { data: challenge, error: challengeError } = await supabase
         .from('challenges')
@@ -136,6 +151,10 @@ export default function Admin() {
           start_date: challengeData.start_date,
           end_date: challengeData.end_date,
           max_participants: challengeData.max_participants ? parseInt(challengeData.max_participants) : null,
+          daily_calories: challengeData.daily_calories ? parseInt(challengeData.daily_calories) : null,
+          daily_time_minutes: challengeData.daily_time_minutes ? parseInt(challengeData.daily_time_minutes) : null,
+          difficulty_level: challengeData.difficulty_level,
+          total_days: totalDays,
           created_by: user!.id,
         })
         .select()
@@ -165,6 +184,21 @@ export default function Admin() {
         if (itemsError) throw itemsError;
       }
 
+      // Create final rewards
+      const rewardsToInsert = finalRewards.map(reward => ({
+        challenge_id: challenge.id,
+        position: reward.position,
+        coins_reward: reward.coins_reward,
+      }));
+
+      if (rewardsToInsert.length > 0) {
+        const { error: rewardsError } = await supabase
+          .from('challenge_final_rewards')
+          .insert(rewardsToInsert);
+
+        if (rewardsError) throw rewardsError;
+      }
+
       toast({
         title: "Desafio criado!",
         description: "O desafio foi criado com sucesso",
@@ -177,6 +211,10 @@ export default function Admin() {
         start_date: '',
         end_date: '',
         max_participants: '',
+        daily_calories: '',
+        daily_time_minutes: '',
+        difficulty_level: 'iniciante',
+        total_days: '',
       });
       setChallengeItems([{
         title: '',
@@ -187,6 +225,11 @@ export default function Admin() {
         requires_photo: false,
         order_index: 0,
       }]);
+      setFinalRewards([
+        { position: 1, coins_reward: 100 },
+        { position: 2, coins_reward: 50 },
+        { position: 3, coins_reward: 25 },
+      ]);
 
     } catch (error: any) {
       console.error('Error creating challenge:', error);
@@ -273,7 +316,7 @@ export default function Admin() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="start_date">Data de Início *</Label>
                   <Input
@@ -282,6 +325,7 @@ export default function Admin() {
                     value={challengeData.start_date}
                     onChange={(e) => setChallengeData({ ...challengeData, start_date: e.target.value })}
                     required
+                    className="text-sm"
                   />
                 </div>
 
@@ -293,7 +337,46 @@ export default function Admin() {
                     value={challengeData.end_date}
                     onChange={(e) => setChallengeData({ ...challengeData, end_date: e.target.value })}
                     required
+                    className="text-sm"
                   />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="daily_calories">Calorias Diárias</Label>
+                  <Input
+                    id="daily_calories"
+                    type="number"
+                    value={challengeData.daily_calories}
+                    onChange={(e) => setChallengeData({ ...challengeData, daily_calories: e.target.value })}
+                    placeholder="Ex: 500"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="daily_time_minutes">Tempo Diário (min)</Label>
+                  <Input
+                    id="daily_time_minutes"
+                    type="number"
+                    value={challengeData.daily_time_minutes}
+                    onChange={(e) => setChallengeData({ ...challengeData, daily_time_minutes: e.target.value })}
+                    placeholder="Ex: 90"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="difficulty_level">Nível de Dificuldade</Label>
+                  <select
+                    id="difficulty_level"
+                    value={challengeData.difficulty_level}
+                    onChange={(e) => setChallengeData({ ...challengeData, difficulty_level: e.target.value })}
+                    className="w-full p-2 border border-border rounded-lg bg-background"
+                  >
+                    <option value="iniciante">Iniciante</option>
+                    <option value="intermediário">Intermediário</option>
+                    <option value="avançado">Avançado</option>
+                  </select>
                 </div>
               </div>
 
@@ -308,6 +391,36 @@ export default function Admin() {
                 />
               </div>
             </form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Recompensas Finais</CardTitle>
+            <CardDescription>
+              Configure as recompensas em moedas por posição no ranking
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {finalRewards.map((reward, index) => (
+              <div key={reward.position} className="flex items-center gap-4">
+                <div className="w-16 text-center">
+                  <span className="text-sm font-medium">{reward.position}º lugar</span>
+                </div>
+                <Input
+                  type="number"
+                  value={reward.coins_reward}
+                  onChange={(e) => {
+                    const newRewards = [...finalRewards];
+                    newRewards[index].coins_reward = parseInt(e.target.value) || 0;
+                    setFinalRewards(newRewards);
+                  }}
+                  placeholder="Moedas"
+                  className="flex-1"
+                />
+                <span className="text-sm text-muted-foreground">moedas</span>
+              </div>
+            ))}
           </CardContent>
         </Card>
 

@@ -56,6 +56,15 @@ export default function Community() {
   const [isPosting, setIsPosting] = useState(false);
   const [loadingPosts, setLoadingPosts] = useState(true);
 
+  // Check if we should filter by specific challenge from URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const challengeId = urlParams.get('challenge');
+    if (challengeId) {
+      setSelectedChallenge(challengeId);
+    }
+  }, []);
+
   useEffect(() => {
     if (!loading && !user) {
       navigate('/');

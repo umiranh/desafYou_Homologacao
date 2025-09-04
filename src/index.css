@@ -121,3 +121,15 @@ All colors MUST be HSL.
     min-height: 100vh;
   }
 }
+
+/* Scrollbar utilities for carousel */
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}

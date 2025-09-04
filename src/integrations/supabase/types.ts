@@ -43,6 +43,38 @@ export type Database = {
           },
         ]
       }
+      challenge_final_rewards: {
+        Row: {
+          challenge_id: string
+          coins_reward: number
+          created_at: string
+          id: string
+          position: number
+        }
+        Insert: {
+          challenge_id: string
+          coins_reward: number
+          created_at?: string
+          id?: string
+          position: number
+        }
+        Update: {
+          challenge_id?: string
+          coins_reward?: number
+          created_at?: string
+          id?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_final_rewards_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       challenge_items: {
         Row: {
           challenge_id: string
@@ -148,40 +180,55 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          daily_calories: number | null
+          daily_time_minutes: number | null
           description: string
+          difficulty_level: string | null
           end_date: string
           id: string
           image_url: string | null
           is_active: boolean | null
+          is_finished: boolean | null
           max_participants: number | null
           start_date: string
           title: string
+          total_days: number | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           created_by: string
+          daily_calories?: number | null
+          daily_time_minutes?: number | null
           description: string
+          difficulty_level?: string | null
           end_date: string
           id?: string
           image_url?: string | null
           is_active?: boolean | null
+          is_finished?: boolean | null
           max_participants?: number | null
           start_date: string
           title: string
+          total_days?: number | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           created_by?: string
+          daily_calories?: number | null
+          daily_time_minutes?: number | null
           description?: string
+          difficulty_level?: string | null
           end_date?: string
           id?: string
           image_url?: string | null
           is_active?: boolean | null
+          is_finished?: boolean | null
           max_participants?: number | null
           start_date?: string
           title?: string
+          total_days?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -373,7 +420,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      finalize_expired_challenges: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
