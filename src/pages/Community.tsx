@@ -22,6 +22,7 @@ interface Post {
   profiles: {
     display_name?: string;
     level: number;
+    avatar_url?: string;
   };
   challenges: {
     title: string;
@@ -34,6 +35,7 @@ interface Post {
     created_at: string;
     profiles: {
       display_name?: string;
+      avatar_url?: string;
     };
   }[];
 }
@@ -143,7 +145,7 @@ export default function Community() {
         
         const { data: profilesData } = await supabase
           .from('profiles')
-          .select('user_id, display_name, level')
+          .select('user_id, display_name, level, avatar_url')
           .in('user_id', userIds);
         
         const profilesMap = new Map(profilesData?.map(profile => [profile.user_id, profile]) || []);
@@ -156,14 +158,16 @@ export default function Community() {
             ...post,
             profiles: {
               display_name: userProfile?.display_name || 'Usuário',
-              level: userProfile?.level || 1
+              level: userProfile?.level || 1,
+              avatar_url: userProfile?.avatar_url
             },
             post_comments: (post.post_comments || []).map((comment: any) => {
               const commentProfile = profilesMap.get(comment.user_id);
               return {
                 ...comment,
                 profiles: {
-                  display_name: commentProfile?.display_name || 'Usuário'
+                  display_name: commentProfile?.display_name || 'Usuário',
+                  avatar_url: commentProfile?.avatar_url
                 }
               };
             })
@@ -285,7 +289,7 @@ export default function Community() {
       if (newPostData && newPostData[0]) {
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('user_id, display_name, level')
+          .select('user_id, display_name, level, avatar_url')
           .eq('user_id', user.id)
           .single();
 
@@ -293,7 +297,8 @@ export default function Community() {
           ...newPostData[0],
           profiles: {
             display_name: profileData?.display_name || 'Usuário',
-            level: profileData?.level || 1
+            level: profileData?.level || 1,
+            avatar_url: profileData?.avatar_url
           },
           post_comments: []
         };
@@ -488,9 +493,21 @@ export default function Community() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <Avatar className="border-2 border-white/50">
-                      <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-white font-bold">
-                        {post.profiles?.display_name?.charAt(0) || 'U'}
-                      </AvatarFallback>
+                      {post.profiles?.avatar_url ? (
+                        <img 
+                          src={post.profiles.avatar_url} 
+                          alt={post.profiles?.display_name} 
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-white font-bold">
+                          {post.profiles?.display_name?.charAt(0) || 'U'}
+                        </AvatarFallback>
+                      )}
                     </Avatar>
                     <div>
                       <div className="flex items-center space-x-2">
@@ -555,9 +572,21 @@ export default function Community() {
                       {post.post_comments.slice(0, 2).map((comment) => (
                         <div key={comment.id} className="flex space-x-2">
                           <Avatar className="h-6 w-6">
-                            <AvatarFallback className="text-xs">
-                              {comment.profiles?.display_name?.charAt(0) || 'U'}
-                            </AvatarFallback>
+                            {comment.profiles?.avatar_url ? (
+                              <img 
+                                src={comment.profiles.avatar_url} 
+                                alt={comment.profiles?.display_name} 
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <AvatarFallback className="text-xs">
+                                {comment.profiles?.display_name?.charAt(0) || 'U'}
+                              </AvatarFallback>
+                            )}
                           </Avatar>
                           <div className="flex-1">
                             <p className="text-xs">
