@@ -92,7 +92,7 @@ export default function Dashboard() {
           .from('challenges')
           .select(`
             *,
-            challenge_enrollments!left(user_id)
+            challenge_enrollments(user_id)
           `)
           .eq('is_active', true)
           .order('created_at', { ascending: false });

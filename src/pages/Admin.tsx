@@ -34,6 +34,7 @@ export default function Admin() {
   const [activeChallenges, setActiveChallenges] = useState<any[]>([]);
   const [loadingChallenges, setLoadingChallenges] = useState(false);
   const [finalizingChallenge, setFinalizingChallenge] = useState<string | null>(null);
+  const [totalUsers, setTotalUsers] = useState(0);
 
   const [challengeData, setChallengeData] = useState({
     title: '',
@@ -106,30 +107,41 @@ export default function Admin() {
     }
   }, [user, loading, navigate, toast]);
 
-  // Load active challenges
+  // Load active challenges and stats
   useEffect(() => {
-    const loadActiveChallenges = async () => {
+    const loadData = async () => {
       if (!isAdmin) return;
       
       setLoadingChallenges(true);
       try {
-        const { data, error } = await supabase
+        // Load challenges
+        const { data: challengesData, error: challengesError } = await supabase
           .from('challenges')
           .select(`
             *,
-            challenge_enrollments(count)
+            challenge_enrollments(user_id)
           `)
           .eq('is_active', true)
           .eq('is_finished', false)
           .order('created_at', { ascending: false });
 
-        if (error) throw error;
-        setActiveChallenges(data || []);
+        if (challengesError) throw challengesError;
+        setActiveChallenges(challengesData || []);
+
+        // Load total users count
+        const { count: usersCount, error: usersError } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true });
+
+        if (!usersError) {
+          setTotalUsers(usersCount || 0);
+        }
+
       } catch (error) {
-        console.error('Error loading challenges:', error);
+        console.error('Error loading data:', error);
         toast({
           title: "Erro",
-          description: "Falha ao carregar desafios ativos",
+          description: "Falha ao carregar dados",
           variant: "destructive",
         });
       } finally {
@@ -137,7 +149,7 @@ export default function Admin() {
       }
     };
 
-    loadActiveChallenges();
+    loadData();
   }, [isAdmin, toast]);
 
   const addChallengeItem = () => {
@@ -436,15 +448,15 @@ export default function Admin() {
           <Card className="bg-white/50 border-accent/20">
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-accent">
-                {activeChallenges.reduce((sum, c) => sum + (c.challenge_enrollments?.[0]?.count || 0), 0)}
+                {activeChallenges.reduce((sum, c) => sum + (c.challenge_enrollments?.length || 0), 0)}
               </div>
               <p className="text-sm text-muted-foreground">Total Participantes</p>
             </CardContent>
           </Card>
           <Card className="bg-white/50 border-secondary/20">
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-secondary">0</div>
-              <p className="text-sm text-muted-foreground">Usuários Ativos</p>
+              <div className="text-2xl font-bold text-secondary">{totalUsers}</div>
+              <p className="text-sm text-muted-foreground">Usuários Cadastrados</p>
             </CardContent>
           </Card>
         </div>
@@ -484,7 +496,7 @@ export default function Admin() {
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <div className="flex items-center gap-1">
                             <Users className="h-4 w-4" />
-                            {challenge.challenge_enrollments?.[0]?.count || 0} participantes
+                            {challenge.challenge_enrollments?.length || 0} participantes
                           </div>
                           <div className="flex items-center gap-1">
                             <Calendar className="h-4 w-4" />

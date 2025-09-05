@@ -107,8 +107,17 @@ export default function Community() {
   // Fetch posts
   useEffect(() => {
     const fetchPosts = async () => {
+      if (!user || challenges.length === 0) {
+        setPosts([]);
+        setLoadingPosts(false);
+        return;
+      }
+
       try {
         setLoadingPosts(true);
+        
+        // Get user's enrolled challenge IDs
+        const userChallengeIds = challenges.map(c => c.id);
         
         let query = supabase
           .from('community_posts')
@@ -127,6 +136,7 @@ export default function Community() {
               created_at
             )
           `)
+          .in('challenge_id', userChallengeIds)
           .order('created_at', { ascending: false });
 
         if (selectedChallenge !== 'all') {
@@ -188,7 +198,7 @@ export default function Community() {
     };
 
     fetchPosts();
-  }, [selectedChallenge, toast]);
+  }, [selectedChallenge, toast, user, challenges]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -227,10 +237,10 @@ export default function Community() {
 
   const createPost = async () => {
     if (!user || !newPost.trim()) return;
-    if (selectedChallenge === 'all') {
+    if (selectedChallenge === 'all' || challenges.length === 0) {
       toast({
         title: "Selecione um desafio",
-        description: "Você precisa selecionar um desafio para postar",
+        description: "Você precisa estar inscrito e selecionar um desafio para postar",
         variant: "destructive",
       });
       return;
@@ -383,37 +393,43 @@ export default function Community() {
   return (
     <div className="min-h-screen pb-24 bg-gradient-to-br from-primary/5 via-background to-accent/5">
       <header className="bg-background/95 backdrop-blur-sm sticky top-0 z-50 border-b shadow-sm">
-        <div className="container mx-auto px-4 py-6 max-w-4xl">
-          <div className="text-center mb-6">
-            <h1 className="text-3xl font-bold text-primary mb-2">💬 Comunidade</h1>
-            <p className="text-muted-foreground">Compartilhe seu progresso e inspire outros</p>
+        <div className="container mx-auto px-4 py-3 max-w-4xl">
+          <div className="text-center mb-4">
+            <h1 className="text-2xl font-bold text-primary mb-1">💬 Comunidade</h1>
+            <p className="text-sm text-muted-foreground">Compartilhe seu progresso</p>
           </div>
           
           {/* Challenge filter */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             <select
               value={selectedChallenge}
               onChange={(e) => setSelectedChallenge(e.target.value)}
-              className="w-full p-3 rounded-2xl border-0 bg-white/60 backdrop-blur-sm shadow-sm text-primary font-medium focus:ring-2 focus:ring-primary/20 focus:outline-none"
+              className="w-full p-2.5 rounded-xl border-0 bg-white/60 backdrop-blur-sm shadow-sm text-primary font-medium focus:ring-2 focus:ring-primary/20 focus:outline-none text-sm"
             >
-              <option value="all">🏆 Todos os Desafios</option>
-              {challenges.map((challenge) => (
-                <option key={challenge.id} value={challenge.id}>
-                  {challenge.title}
-                </option>
-              ))}
+              {challenges.length > 0 ? (
+                <>
+                  <option value="all">🏆 Todos os Meus Desafios</option>
+                  {challenges.map((challenge) => (
+                    <option key={challenge.id} value={challenge.id}>
+                      {challenge.title}
+                    </option>
+                  ))}
+                </>
+              ) : (
+                <option value="all">📝 Inscreva-se em um desafio primeiro</option>
+              )}
             </select>
 
             {/* New post form */}
-            <Card className="bg-background/90 backdrop-blur-sm border border-primary/20 shadow-xl">
-              <CardContent className="p-6">
-                <div className="space-y-4">
+            <Card className="bg-background/90 backdrop-blur-sm border border-primary/20 shadow-lg">
+              <CardContent className="p-4">
+                <div className="space-y-3">
                   <Textarea
                     placeholder="💪 Compartilhe seu progresso e inspire outros..."
                     value={newPost}
                     onChange={(e) => setNewPost(e.target.value)}
-                    rows={3}
-                    className="border-primary/20 bg-background rounded-2xl resize-none focus:ring-2 focus:ring-primary/20 text-base"
+                    rows={2}
+                    className="border-primary/20 bg-background rounded-xl resize-none focus:ring-2 focus:ring-primary/20 text-sm"
                   />
                   
                   {imagePreview && (
@@ -437,7 +453,7 @@ export default function Community() {
                     </div>
                   )}
                   
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-2">
                     <div className="flex items-center space-x-2">
                       <input
                         type="file"
@@ -447,10 +463,10 @@ export default function Community() {
                         id="image-upload"
                       />
                       <label htmlFor="image-upload">
-                        <Button variant="outline" size="sm" asChild className="rounded-full border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary">
+                        <Button variant="outline" size="sm" asChild className="rounded-full border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary text-xs px-3 py-1.5">
                           <span className="cursor-pointer">
-                            <Camera className="h-4 w-4 mr-2" />
-                            📸 Adicionar Foto
+                            <Camera className="h-3 w-3 mr-1" />
+                            📸 Foto
                           </span>
                         </Button>
                       </label>
@@ -458,13 +474,13 @@ export default function Community() {
                     
                      <Button
                       onClick={createPost}
-                      disabled={!newPost.trim() || isPosting || selectedChallenge === 'all'}
-                      className="gap-2 rounded-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white font-medium px-8 py-2 shadow-lg"
+                      disabled={!newPost.trim() || isPosting || selectedChallenge === 'all' || challenges.length === 0}
+                      className="gap-2 rounded-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white font-medium px-6 py-2 shadow-lg text-sm"
                     >
                       {isPosting ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <Loader2 className="h-3 w-3 animate-spin" />
                       ) : (
-                        <Send className="h-4 w-4" />
+                        <Send className="h-3 w-3" />
                       )}
                       Compartilhar
                     </Button>
@@ -476,7 +492,7 @@ export default function Community() {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-6 space-y-6 max-w-4xl">
+      <div className="container mx-auto px-4 py-4 space-y-4 max-w-4xl">
         {loadingPosts ? (
           <div className="flex items-center justify-center py-16">
             <div className="text-center">
