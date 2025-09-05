@@ -8,6 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Eye, EyeOff, Shield, AlertTriangle } from 'lucide-react';
+import { PasswordStrengthIndicator } from '@/components/PasswordStrengthIndicator';
+import { validateTextInput } from '@/utils/inputSanitizer';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -80,6 +82,27 @@ export default function Login() {
       toast({
         title: "Erro na confirmação",
         description: "As senhas não coincidem",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Enhanced security validation
+    if (signupData.password.length < 8) {
+      toast({
+        title: "Senha muito fraca",
+        description: "A senha deve ter pelo menos 8 caracteres",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate display name
+    const nameValidation = validateTextInput(signupData.displayName, 50);
+    if (!nameValidation.isValid) {
+      toast({
+        title: "Erro no nome",
+        description: nameValidation.error,
         variant: "destructive",
       });
       return;
@@ -251,27 +274,9 @@ export default function Login() {
                          )}
                        </Button>
                      </div>
-                     {signupData.password && (
-                       <div className="space-y-1">
-                         <div className="flex items-center gap-2">
-                           <div className="flex-1 bg-muted rounded-full h-2">
-                             <div 
-                               className={`h-full rounded-full transition-all ${getStrengthColor()}`}
-                               style={{ width: `${passwordStrength}%` }}
-                             />
-                           </div>
-                           <span className="text-xs text-muted-foreground">
-                             {getStrengthText()}
-                           </span>
-                         </div>
-                         <div className="flex items-start gap-1">
-                           <Shield className="h-3 w-3 mt-0.5 text-muted-foreground" />
-                           <p className="text-xs text-muted-foreground">
-                             Use 8+ caracteres com maiúsculas, minúsculas e números
-                           </p>
-                         </div>
-                       </div>
-                     )}
+                      {signupData.password && (
+                        <PasswordStrengthIndicator password={signupData.password} />
+                      )}
                    </div>
                   <div className="space-y-2">
                     <Input

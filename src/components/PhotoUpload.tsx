@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Camera, Loader2 } from 'lucide-react';
+import { validateFileUpload } from '@/utils/inputSanitizer';
 
 interface PhotoUploadProps {
   onPhotoUploaded: (url: string) => void;
