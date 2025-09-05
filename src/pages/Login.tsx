@@ -6,11 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2, Eye, EyeOff, Shield, AlertTriangle } from 'lucide-react';
 
 export default function Login() {
   const navigate = useNavigate();
   const { signIn, signUp, user, loading } = useAuth();
+  const { toast } = useToast();
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [signupData, setSignupData] = useState({ 
     email: '', 
@@ -19,6 +21,8 @@ export default function Login() {
     displayName: '' 
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState(0);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -40,16 +44,53 @@ export default function Login() {
     setIsLoading(false);
   };
 
+  // Password strength validation
+  const validatePasswordStrength = (password: string) => {
+    let strength = 0;
+    if (password.length >= 8) strength += 25;
+    if (password.match(/[a-z]/)) strength += 25;
+    if (password.match(/[A-Z]/)) strength += 25;
+    if (password.match(/[0-9]/)) strength += 25;
+    return strength;
+  };
+
+  const handlePasswordChange = (password: string) => {
+    setSignupData({ ...signupData, password });
+    setPasswordStrength(validatePasswordStrength(password));
+  };
+
+  const getStrengthColor = () => {
+    if (passwordStrength < 25) return 'bg-destructive';
+    if (passwordStrength < 50) return 'bg-orange-500';
+    if (passwordStrength < 75) return 'bg-yellow-500';
+    return 'bg-green-500';
+  };
+
+  const getStrengthText = () => {
+    if (passwordStrength < 25) return 'Muito fraca';
+    if (passwordStrength < 50) return 'Fraca';
+    if (passwordStrength < 75) return 'Média';
+    return 'Forte';
+  };
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (signupData.password !== signupData.confirmPassword) {
-      alert('As senhas não coincidem');
+      toast({
+        title: "Erro na confirmação",
+        description: "As senhas não coincidem",
+        variant: "destructive",
+      });
       return;
     }
     
-    if (signupData.password.length < 6) {
-      alert('A senha deve ter pelo menos 6 caracteres');
+    if (passwordStrength < 50) {
+      toast({
+        title: "Senha muito fraca",
+        description: "Use pelo menos 8 caracteres com letras maiúsculas, minúsculas e números",
+        variant: "destructive",
+      });
       return;
     }
     
@@ -64,6 +105,7 @@ export default function Login() {
     if (!error) {
       // User will need to verify email first
       setSignupData({ email: '', password: '', confirmPassword: '', displayName: '' });
+      setPasswordStrength(0);
     }
     
     setIsLoading(false);
@@ -185,18 +227,52 @@ export default function Login() {
                       required
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Input
-                      type="password"
-                      placeholder="Senha (mín. 6 caracteres)"
-                      value={signupData.password}
-                      onChange={(e) =>
-                        setSignupData({ ...signupData, password: e.target.value })
-                      }
-                      className="h-12 bg-transparent border-0 border-b-2 border-muted-foreground/30 rounded-none placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-0"
-                      required
-                    />
-                  </div>
+                   <div className="space-y-2">
+                     <div className="relative">
+                       <Input
+                         type={showPassword ? "text" : "password"}
+                         placeholder="Senha (mín. 8 caracteres)"
+                         value={signupData.password}
+                         onChange={(e) => handlePasswordChange(e.target.value)}
+                         className="h-12 bg-transparent border-0 border-b-2 border-muted-foreground/30 rounded-none placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-0 pr-12"
+                         required
+                       />
+                       <Button
+                         type="button"
+                         variant="ghost"
+                         size="sm"
+                         className="absolute right-0 top-0 h-12 px-3 py-2 hover:bg-transparent"
+                         onClick={() => setShowPassword(!showPassword)}
+                       >
+                         {showPassword ? (
+                           <EyeOff className="h-4 w-4" />
+                         ) : (
+                           <Eye className="h-4 w-4" />
+                         )}
+                       </Button>
+                     </div>
+                     {signupData.password && (
+                       <div className="space-y-1">
+                         <div className="flex items-center gap-2">
+                           <div className="flex-1 bg-muted rounded-full h-2">
+                             <div 
+                               className={`h-full rounded-full transition-all ${getStrengthColor()}`}
+                               style={{ width: `${passwordStrength}%` }}
+                             />
+                           </div>
+                           <span className="text-xs text-muted-foreground">
+                             {getStrengthText()}
+                           </span>
+                         </div>
+                         <div className="flex items-start gap-1">
+                           <Shield className="h-3 w-3 mt-0.5 text-muted-foreground" />
+                           <p className="text-xs text-muted-foreground">
+                             Use 8+ caracteres com maiúsculas, minúsculas e números
+                           </p>
+                         </div>
+                       </div>
+                     )}
+                   </div>
                   <div className="space-y-2">
                     <Input
                       type="password"

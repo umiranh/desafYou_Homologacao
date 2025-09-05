@@ -31,6 +31,28 @@ export function PhotoUpload({
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Security validation: File size limit (5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+      if (file.size > maxSize) {
+        toast({
+          title: "Arquivo muito grande",
+          description: "A imagem deve ter no máximo 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Security validation: File type validation
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          title: "Tipo de arquivo inválido",
+          description: "Apenas imagens (JPEG, PNG, GIF, WebP) são permitidas",
+          variant: "destructive",
+        });
+        return;
+      }
+
       setSelectedImage(file);
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -103,10 +125,11 @@ export function PhotoUpload({
       
       <input
         type="file"
-        accept="image/*"
+        accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
         onChange={handleImageSelect}
         className="hidden"
         id={`photo-upload-${bucketName}`}
+        max="1"
       />
       
       <div className="flex gap-2">
