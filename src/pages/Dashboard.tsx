@@ -100,26 +100,21 @@ export default function Dashboard() {
         if (challengesError) throw challengesError;
 
         // Process challenges to add enrollment status and participant count
-        const processedChallenges = await Promise.all(
-          challengesData.map(async (challenge) => {
-            // Count participants
-            const { count: participantsCount } = await supabase
-              .from('challenge_enrollments')
-              .select('*', { count: 'exact', head: true })
-              .eq('challenge_id', challenge.id);
+        const processedChallenges = challengesData.map((challenge) => {
+          // Check if current user is enrolled
+          const userEnrolled = challenge.challenge_enrollments?.some(
+            (enrollment: any) => enrollment.user_id === user?.id
+          ) || false;
 
-            // Check if current user is enrolled
-            const userEnrolled = challenge.challenge_enrollments?.some(
-              (enrollment: any) => enrollment.user_id === user?.id
-            ) || false;
+          // Count total participants from the joined data
+          const participantsCount = challenge.challenge_enrollments?.length || 0;
 
-            return {
-              ...challenge,
-              participants_count: participantsCount || 0,
-              user_enrolled: userEnrolled,
-            };
-          })
-        );
+          return {
+            ...challenge,
+            participants_count: participantsCount,
+            user_enrolled: userEnrolled,
+          };
+        });
 
         setChallenges(processedChallenges);
       } catch (error: any) {

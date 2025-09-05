@@ -53,8 +53,7 @@ export function ChallengeDetailModal({ challenge, onClose, onEnroll, isEnrolling
         const { data: enrollments } = await supabase
           .from('challenge_enrollments')
           .select('user_id')
-          .eq('challenge_id', challenge.id)
-          .limit(4);
+          .eq('challenge_id', challenge.id);
 
         if (enrollments && enrollments.length > 0) {
           const userIds = enrollments.map(e => e.user_id);
@@ -177,8 +176,8 @@ export function ChallengeDetailModal({ challenge, onClose, onEnroll, isEnrolling
               </div>
 
               {/* Participants Avatars */}
-              <div className="flex -space-x-2">
-                {realParticipants.map((participant) => (
+              <div className="flex -space-x-2 overflow-hidden">
+                {realParticipants.slice(0, 8).map((participant) => (
                   <div
                     key={participant.id}
                     className="h-10 w-10 rounded-full border-2 border-background overflow-hidden bg-primary/10 flex items-center justify-center"
@@ -200,6 +199,13 @@ export function ChallengeDetailModal({ challenge, onClose, onEnroll, isEnrolling
                     )}
                   </div>
                 ))}
+                {realParticipants.length > 8 && (
+                  <div className="h-10 w-10 rounded-full border-2 border-background bg-primary/20 flex items-center justify-center">
+                    <span className="text-xs font-bold text-primary">
+                      +{realParticipants.length - 8}
+                    </span>
+                  </div>
+                )}
                 {realParticipants.length === 0 && (
                   <div className="h-10 w-10 rounded-full border-2 border-background bg-muted flex items-center justify-center">
                     <Users className="h-4 w-4 text-muted-foreground" />

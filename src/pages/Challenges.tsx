@@ -348,85 +348,99 @@ export default function Challenges() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen pb-24" style={{ 
-      background: 'linear-gradient(135deg, hsl(345, 25%, 92%) 0%, hsl(25, 30%, 90%) 100%)' 
-    }}>
-      <header className="bg-white/80 backdrop-blur-sm sticky top-0 z-50 border-b border-white/20 shadow-sm">
-        <div className="container mx-auto px-3 py-4 md:px-4 md:py-6">
-          <h1 className="text-xl md:text-2xl font-bold text-primary">💪 Meus Desafios</h1>
+    <div className="min-h-screen pb-24 bg-gradient-to-br from-primary/5 via-background to-accent/5">
+      <header className="bg-background/95 backdrop-blur-sm sticky top-0 z-50 border-b shadow-sm">
+        <div className="container mx-auto px-4 py-6 max-w-6xl">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-primary mb-2">🏆 Meus Desafios</h1>
+            <p className="text-muted-foreground">Acompanhe seu progresso e complete suas tarefas</p>
+          </div>
         </div>
       </header>
 
-      <div className="container mx-auto px-3 py-4 space-y-4 md:px-4 md:space-y-6">
+      <div className="container mx-auto px-4 py-6 space-y-6 max-w-6xl">
         {challenges.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">
-              Você ainda não está inscrito em nenhum desafio.
-            </p>
-            <Button
-              className="mt-4"
-              onClick={() => navigate('/dashboard')}
-            >
-              Explorar Desafios
-            </Button>
+          <div className="text-center py-20">
+            <div className="bg-background/90 rounded-3xl p-12 border border-primary/20 max-w-md mx-auto">
+              <div className="text-8xl mb-6">🏁</div>
+              <h3 className="text-2xl font-bold text-primary mb-4">Nenhum desafio ativo</h3>
+              <p className="text-muted-foreground mb-6 text-lg">
+                Você ainda não está inscrito em nenhum desafio. Que tal começar sua jornada fitness agora?
+              </p>
+              <Button
+                className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white px-8 py-3 rounded-full text-lg font-semibold shadow-lg"
+                onClick={() => navigate('/dashboard')}
+              >
+                🚀 Explorar Desafios
+              </Button>
+            </div>
           </div>
         ) : (
-          challenges.map((challenge) => {
-            const totalXP = getTotalXP(challenge);
-            const maxXP = getMaxXP(challenge);
-            const progress = maxXP > 0 ? (totalXP / maxXP) * 100 : 0;
-            const userPosition = getUserPosition(challenge.id);
-            
-            return (
-              <Card key={challenge.id} className="bg-white/70 backdrop-blur-sm border-0 shadow-lg rounded-3xl overflow-hidden">
-                <CardHeader className="p-4 md:p-6">
-                  <div className="flex flex-col space-y-3 md:flex-row md:items-center md:justify-between md:space-y-0">
-                    <CardTitle className="text-base md:text-lg text-primary pr-2">{challenge.title}</CardTitle>
-                    <div className="flex items-center space-x-2 flex-shrink-0">
+          <div className="grid gap-6 lg:gap-8">
+            {challenges.map((challenge) => {
+              const totalXP = getTotalXP(challenge);
+              const maxXP = getMaxXP(challenge);
+              const progress = maxXP > 0 ? (totalXP / maxXP) * 100 : 0;
+              const userPosition = getUserPosition(challenge.id);
+              
+              return (
+                <Card key={challenge.id} className="bg-background/90 backdrop-blur-sm border border-primary/10 shadow-xl rounded-3xl overflow-hidden hover:shadow-2xl transition-all duration-300">
+                <CardHeader className="p-6 bg-gradient-to-r from-primary/5 to-accent/5">
+                  <div className="flex flex-col space-y-4 lg:flex-row lg:items-start lg:justify-between lg:space-y-0">
+                    <div className="flex-1">
+                      <CardTitle className="text-xl lg:text-2xl text-primary mb-2 leading-tight">{challenge.title}</CardTitle>
+                      <p className="text-muted-foreground leading-relaxed">{challenge.description}</p>
+                    </div>
+                    <div className="flex items-center space-x-3 flex-shrink-0">
                       {userPosition && (
-                        <Badge variant="outline" className="gap-1 border-primary/20 bg-primary/10 text-xs">
-                          <Medal className="h-3 w-3 text-primary" />
-                          #{userPosition}
+                        <Badge variant="outline" className="gap-2 border-primary/30 bg-primary/10 text-primary px-4 py-2">
+                          <Medal className="h-4 w-4" />
+                          Posição #{userPosition}
                         </Badge>
                       )}
-                      <Badge variant="secondary" className="bg-primary/10 text-primary text-xs">
+                      <Badge variant="secondary" className="bg-accent/20 text-accent px-4 py-2 font-semibold">
                         {totalXP} / {maxXP} XP
                       </Badge>
                     </div>
                   </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{challenge.description}</p>
                   
-                  <div className="flex flex-col space-y-2 text-xs text-muted-foreground md:flex-row md:items-center md:space-x-4 md:space-y-0 md:text-sm">
-                    <div className="flex items-center space-x-1">
-                      <Clock className="h-4 w-4 flex-shrink-0" />
-                      <span className="break-words">{formatDate(challenge.start_date)} - {formatDate(challenge.end_date)}</span>
+                  <div className="flex flex-col space-y-3 text-sm text-muted-foreground lg:flex-row lg:items-center lg:space-x-6 lg:space-y-0">
+                    <div className="flex items-center space-x-2">
+                      <div className="h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center">
+                        <Clock className="h-4 w-4 text-primary" />
+                      </div>
+                      <span>{formatDate(challenge.start_date)} - {formatDate(challenge.end_date)}</span>
                     </div>
-                    <div className="flex items-center space-x-1">
-                      <Users className="h-4 w-4 flex-shrink-0" />
-                      <span>{rankings[challenge.id]?.length || 0} participantes</span>
+                    <div className="flex items-center space-x-2">
+                      <div className="h-8 w-8 bg-accent/10 rounded-full flex items-center justify-center">
+                        <Users className="h-4 w-4 text-accent" />
+                      </div>
+                      <span>{rankings[challenge.id]?.length || 0} participantes ativos</span>
                     </div>
                   </div>
                   
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span>Progresso Geral</span>
-                      <span>{Math.round(progress)}%</span>
+                  <div className="space-y-3 bg-background/50 rounded-2xl p-4">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Progresso Geral</span>
+                      <span className="text-lg font-bold text-primary">{Math.round(progress)}%</span>
                     </div>
-                    <Progress value={progress} className="h-2" />
+                    <Progress value={progress} className="h-3 bg-muted" />
                   </div>
                 </CardHeader>
 
-                <CardContent className="space-y-4 p-4 md:p-6">
+                <CardContent className="space-y-6 p-6">
                   {/* Ranking */}
                   {rankings[challenge.id] && rankings[challenge.id].length > 0 && (
-                    <Card className="border-0 bg-white/50">
-                      <CardHeader className="p-4">
-                        <CardTitle className="text-sm md:text-base flex items-center gap-2">
-                          <Trophy className="h-4 w-4" />
-                          Ranking
+                    <Card className="border border-primary/10 bg-background/50">
+                      <CardHeader className="p-6 bg-gradient-to-r from-primary/5 to-accent/5">
+                        <CardTitle className="text-lg flex items-center gap-3">
+                          <div className="h-8 w-8 bg-primary/20 rounded-full flex items-center justify-center">
+                            <Trophy className="h-4 w-4 text-primary" />
+                          </div>
+                          Ranking do Desafio
                         </CardTitle>
                       </CardHeader>
-                      <CardContent className="p-4 pt-0">
+                      <CardContent className="p-6">
                         <div className="space-y-2">
                           {rankings[challenge.id].slice(0, 5).map((user, index) => (
                             <div
@@ -602,7 +616,8 @@ export default function Challenges() {
                 </CardContent>
               </Card>
             );
-          })
+          })}
+          </div>
         )}
       </div>
 

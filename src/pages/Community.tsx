@@ -381,12 +381,13 @@ export default function Community() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen pb-24" style={{ 
-      background: 'linear-gradient(135deg, hsl(345, 25%, 92%) 0%, hsl(25, 30%, 90%) 100%)' 
-    }}>
-      <header className="bg-white/80 backdrop-blur-sm sticky top-0 z-50 border-b border-white/20 shadow-sm">
-        <div className="container mx-auto px-4 py-6">
-          <h1 className="text-2xl font-bold text-primary mb-4">✨ Comunidade</h1>
+    <div className="min-h-screen pb-24 bg-gradient-to-br from-primary/5 via-background to-accent/5">
+      <header className="bg-background/95 backdrop-blur-sm sticky top-0 z-50 border-b shadow-sm">
+        <div className="container mx-auto px-4 py-6 max-w-4xl">
+          <div className="text-center mb-6">
+            <h1 className="text-3xl font-bold text-primary mb-2">💬 Comunidade</h1>
+            <p className="text-muted-foreground">Compartilhe seu progresso e inspire outros</p>
+          </div>
           
           {/* Challenge filter */}
           <div className="space-y-4">
@@ -404,15 +405,15 @@ export default function Community() {
             </select>
 
             {/* New post form */}
-            <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-lg">
-              <CardContent className="p-4">
+            <Card className="bg-background/90 backdrop-blur-sm border border-primary/20 shadow-xl">
+              <CardContent className="p-6">
                 <div className="space-y-4">
                   <Textarea
-                    placeholder="💪 Compartilhe seu progresso..."
+                    placeholder="💪 Compartilhe seu progresso e inspire outros..."
                     value={newPost}
                     onChange={(e) => setNewPost(e.target.value)}
                     rows={3}
-                    className="border-0 bg-white/70 rounded-2xl resize-none focus:ring-2 focus:ring-primary/20"
+                    className="border-primary/20 bg-background rounded-2xl resize-none focus:ring-2 focus:ring-primary/20 text-base"
                   />
                   
                   {imagePreview && (
@@ -446,26 +447,26 @@ export default function Community() {
                         id="image-upload"
                       />
                       <label htmlFor="image-upload">
-                        <Button variant="outline" size="sm" asChild className="rounded-full border-primary/20 bg-white/70 hover:bg-white/90">
+                        <Button variant="outline" size="sm" asChild className="rounded-full border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary">
                           <span className="cursor-pointer">
                             <Camera className="h-4 w-4 mr-2" />
-                            📸 Foto
+                            📸 Adicionar Foto
                           </span>
                         </Button>
                       </label>
                     </div>
                     
-                    <Button
+                     <Button
                       onClick={createPost}
                       disabled={!newPost.trim() || isPosting || selectedChallenge === 'all'}
-                      className="gap-2 rounded-full bg-primary hover:bg-primary/90 text-white font-medium px-6"
+                      className="gap-2 rounded-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white font-medium px-8 py-2 shadow-lg"
                     >
                       {isPosting ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
                         <Send className="h-4 w-4" />
                       )}
-                      Postar ✨
+                      Compartilhar
                     </Button>
                   </div>
                 </div>
@@ -475,20 +476,27 @@ export default function Community() {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-4 space-y-4">
+      <div className="container mx-auto px-4 py-6 space-y-6 max-w-4xl">
         {loadingPosts ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin" />
+          <div className="flex items-center justify-center py-16">
+            <div className="text-center">
+              <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
+              <p className="text-muted-foreground">Carregando posts da comunidade...</p>
+            </div>
           </div>
         ) : posts.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground">
-              Nenhum post encontrado. Seja o primeiro a compartilhar!
-            </p>
+          <div className="text-center py-16">
+            <div className="bg-background/90 rounded-3xl p-8 border border-primary/20">
+              <div className="text-6xl mb-4">💭</div>
+              <h3 className="text-xl font-semibold text-primary mb-2">Nenhum post ainda</h3>
+              <p className="text-muted-foreground">
+                Seja o primeiro a compartilhar seu progresso e inspirar outros!
+              </p>
+            </div>
           </div>
         ) : (
           posts.map((post) => (
-            <Card key={post.id} className="bg-white/70 backdrop-blur-sm border-0 shadow-lg rounded-3xl overflow-hidden">
+            <Card key={post.id} className="bg-background/90 backdrop-blur-sm border border-primary/10 shadow-xl rounded-3xl overflow-hidden hover:shadow-2xl transition-all duration-300">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">

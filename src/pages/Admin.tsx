@@ -404,33 +404,62 @@ export default function Admin() {
   ];
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <div className="container flex h-14 items-center justify-between px-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 pb-20">
+      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b shadow-sm">
+        <div className="container flex h-16 items-center justify-between px-4 max-w-6xl mx-auto">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => navigate('/dashboard')}
-            className="gap-2"
+            className="gap-2 hover:bg-primary/10"
           >
             <ArrowLeft className="h-4 w-4" />
-            Voltar
+            Dashboard
           </Button>
-          <h1 className="font-bold text-lg">Admin - Criar Desafio</h1>
-          <div className="w-16" /> {/* Spacer */}
+          <div className="text-center">
+            <h1 className="font-bold text-xl text-primary">🎯 Painel Admin</h1>
+            <p className="text-sm text-muted-foreground">Gerencie desafios e usuários</p>
+          </div>
+          <div className="w-20" />
         </div>
       </header>
 
-      <div className="container max-w-4xl mx-auto p-4 space-y-6">
+      <div className="container max-w-6xl mx-auto p-4 space-y-8">
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <Card className="bg-white/50 border-primary/20">
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-primary">{activeChallenges.length}</div>
+              <p className="text-sm text-muted-foreground">Desafios Ativos</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-white/50 border-accent/20">
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-accent">
+                {activeChallenges.reduce((sum, c) => sum + (c.challenge_enrollments?.[0]?.count || 0), 0)}
+              </div>
+              <p className="text-sm text-muted-foreground">Total Participantes</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-white/50 border-secondary/20">
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-secondary">0</div>
+              <p className="text-sm text-muted-foreground">Usuários Ativos</p>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Active Challenges Management */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Crown className="h-5 w-5" />
+        <Card className="bg-white/70 border-primary/20 shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-primary/10 to-accent/10">
+            <CardTitle className="flex items-center gap-3 text-xl">
+              <div className="h-10 w-10 bg-primary/20 rounded-full flex items-center justify-center">
+                <Crown className="h-5 w-5 text-primary" />
+              </div>
               Gerenciar Desafios Ativos
             </CardTitle>
-            <CardDescription>
-              Finalize desafios antes do prazo e escolha se deseja distribuir recompensas
+            <CardDescription className="text-base">
+              Visualize e finalize desafios em andamento com controle total sobre recompensas
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -507,94 +536,40 @@ export default function Admin() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Informações do Desafio</CardTitle>
-            <CardDescription>
-              Preencha os detalhes básicos do desafio
+        {/* Challenge Creation Form */}
+        <Card className="bg-white/70 border-accent/20 shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-accent/10 to-primary/10">
+            <CardTitle className="flex items-center gap-3 text-xl">
+              <div className="h-10 w-10 bg-accent/20 rounded-full flex items-center justify-center">
+                <Plus className="h-5 w-5 text-accent" />
+              </div>
+              Criar Novo Desafio
+            </CardTitle>
+            <CardDescription className="text-base">
+              Configure um novo desafio fitness completo com tarefas e recompensas
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">Título *</Label>
-                <Input
-                  id="title"
-                  value={challengeData.title}
-                  onChange={(e) => setChallengeData({ ...challengeData, title: e.target.value })}
-                  placeholder="Nome do desafio"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Descrição *</Label>
-                <Textarea
-                  id="description"
-                  value={challengeData.description}
-                  onChange={(e) => setChallengeData({ ...challengeData, description: e.target.value })}
-                  placeholder="Descreva o desafio..."
-                  rows={3}
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="start_date">Data de Início *</Label>
+                  <Label htmlFor="title">Título *</Label>
                   <Input
-                    id="start_date"
-                    type="datetime-local"
-                    value={challengeData.start_date}
-                    onChange={(e) => setChallengeData({ ...challengeData, start_date: e.target.value })}
+                    id="title"
+                    value={challengeData.title}
+                    onChange={(e) => setChallengeData({...challengeData, title: e.target.value})}
+                    placeholder="Ex: Desafio 30 dias"
                     required
-                    className="text-sm"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="end_date">Data de Fim *</Label>
-                  <Input
-                    id="end_date"
-                    type="datetime-local"
-                    value={challengeData.end_date}
-                    onChange={(e) => setChallengeData({ ...challengeData, end_date: e.target.value })}
-                    required
-                    className="text-sm"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="daily_calories">Calorias Diárias</Label>
-                  <Input
-                    id="daily_calories"
-                    type="number"
-                    value={challengeData.daily_calories}
-                    onChange={(e) => setChallengeData({ ...challengeData, daily_calories: e.target.value })}
-                    placeholder="Ex: 500"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="daily_time_minutes">Tempo Diário (min)</Label>
-                  <Input
-                    id="daily_time_minutes"
-                    type="number"
-                    value={challengeData.daily_time_minutes}
-                    onChange={(e) => setChallengeData({ ...challengeData, daily_time_minutes: e.target.value })}
-                    placeholder="Ex: 90"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="difficulty_level">Nível de Dificuldade</Label>
+                  <Label htmlFor="difficulty">Dificuldade</Label>
                   <select
-                    id="difficulty_level"
+                    id="difficulty"
                     value={challengeData.difficulty_level}
-                    onChange={(e) => setChallengeData({ ...challengeData, difficulty_level: e.target.value })}
-                    className="w-full p-2 border border-border rounded-lg bg-background"
+                    onChange={(e) => setChallengeData({...challengeData, difficulty_level: e.target.value})}
+                    className="w-full p-2 border border-input rounded-md bg-background"
                   >
                     <option value="iniciante">Iniciante</option>
                     <option value="intermediário">Intermediário</option>
@@ -604,28 +579,195 @@ export default function Admin() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="max_participants">Máximo de Participantes (opcional)</Label>
-                <Input
-                  id="max_participants"
-                  type="number"
-                  value={challengeData.max_participants}
-                  onChange={(e) => setChallengeData({ ...challengeData, max_participants: e.target.value })}
-                  placeholder="Deixe vazio para ilimitado"
+                <Label htmlFor="description">Descrição *</Label>
+                <Textarea
+                  id="description"
+                  value={challengeData.description}
+                  onChange={(e) => setChallengeData({...challengeData, description: e.target.value})}
+                  placeholder="Descreva os objetivos e benefícios do desafio"
+                  rows={3}
+                  required
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="cover_image">Foto de Capa do Desafio</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  {coverImagePreview && (
-                    <div className="relative w-full h-32 rounded-lg overflow-hidden">
-                      <img 
-                        src={coverImagePreview} 
-                        alt="Preview da capa" 
-                        className="w-full h-full object-cover"
-                      />
+                  <Label htmlFor="start_date">Data de Início *</Label>
+                  <Input
+                    id="start_date"
+                    type="datetime-local"
+                    value={challengeData.start_date}
+                    onChange={(e) => setChallengeData({...challengeData, start_date: e.target.value})}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="end_date">Data de Fim *</Label>
+                  <Input
+                    id="end_date"
+                    type="datetime-local"
+                    value={challengeData.end_date}
+                    onChange={(e) => setChallengeData({...challengeData, end_date: e.target.value})}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="max_participants">Máximo de Participantes</Label>
+                  <Input
+                    id="max_participants"
+                    type="number"
+                    value={challengeData.max_participants}
+                    onChange={(e) => setChallengeData({...challengeData, max_participants: e.target.value})}
+                    placeholder="Deixe vazio para ilimitado"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="daily_calories">Calorias Diárias</Label>
+                  <Input
+                    id="daily_calories"
+                    type="number"
+                    value={challengeData.daily_calories}
+                    onChange={(e) => setChallengeData({...challengeData, daily_calories: e.target.value})}
+                    placeholder="Ex: 300"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="daily_time">Tempo Diário (minutos)</Label>
+                  <Input
+                    id="daily_time"
+                    type="number"
+                    value={challengeData.daily_time_minutes}
+                    onChange={(e) => setChallengeData({...challengeData, daily_time_minutes: e.target.value})}
+                    placeholder="Ex: 45"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Tarefas do Desafio</h3>
+                {challengeItems.map((item, index) => (
+                  <Card key={index} className="p-4">
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <h4 className="font-medium">Tarefa {index + 1}</h4>
+                        {challengeItems.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeChallengeItem(index)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Título da Tarefa</Label>
+                          <Input
+                            value={item.title}
+                            onChange={(e) => updateChallengeItem(index, 'title', e.target.value)}
+                            placeholder="Ex: 20 flexões"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>XP da Tarefa</Label>
+                          <Input
+                            type="number"
+                            value={item.xp_points}
+                            onChange={(e) => updateChallengeItem(index, 'xp_points', parseInt(e.target.value) || 10)}
+                            min="1"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Descrição</Label>
+                        <Textarea
+                          value={item.description}
+                          onChange={(e) => updateChallengeItem(index, 'description', e.target.value)}
+                          placeholder="Instruções detalhadas da tarefa"
+                          rows={2}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Horário de Desbloqueio</Label>
+                          <Input
+                            type="time"
+                            value={item.unlock_time}
+                            onChange={(e) => updateChallengeItem(index, 'unlock_time', e.target.value)}
+                          />
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={`requires_photo_${index}`}
+                            checked={item.requires_photo}
+                            onChange={(e) => updateChallengeItem(index, 'requires_photo', e.target.checked)}
+                          />
+                          <Label htmlFor={`requires_photo_${index}`}>Requer foto</Label>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Dias da Semana</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {weekDays.map((day) => (
+                            <Button
+                              key={day.value}
+                              type="button"
+                              variant={item.unlock_days.includes(day.value) ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => {
+                                const newDays = item.unlock_days.includes(day.value)
+                                  ? item.unlock_days.filter(d => d !== day.value)
+                                  : [...item.unlock_days, day.value];
+                                updateChallengeItem(index, 'unlock_days', newDays);
+                              }}
+                            >
+                              {day.label}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                  )}
+                  </Card>
+                ))}
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addChallengeItem}
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Tarefa
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Foto de Capa</h3>
+                {coverImagePreview && (
+                  <div className="relative w-full h-48">
+                    <img
+                      src={coverImagePreview}
+                      alt="Preview da capa"
+                      className="w-full h-full object-cover rounded-md"
+                    />
+                  </div>
+                )}
+                <div className="space-y-2">
                   <input
                     type="file"
                     accept="image/*"
@@ -639,7 +781,7 @@ export default function Admin() {
                     onClick={() => document.getElementById('cover-image-upload')?.click()}
                     className="w-full"
                   >
-                    <Plus className="h-4 w-4 mr-2" />
+                    <Camera className="h-4 w-4 mr-2" />
                     {coverImagePreview ? 'Alterar Foto de Capa' : 'Escolher Foto de Capa'}
                   </Button>
                   <p className="text-xs text-muted-foreground">
@@ -647,164 +789,22 @@ export default function Admin() {
                   </p>
                 </div>
               </div>
-            </form>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Recompensas Finais</CardTitle>
-            <CardDescription>
-              Configure as recompensas em moedas por posição no ranking
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {finalRewards.map((reward, index) => (
-              <div key={reward.position} className="flex items-center gap-4">
-                <div className="w-16 text-center">
-                  <span className="text-sm font-medium">{reward.position}º lugar</span>
-                </div>
-                <Input
-                  type="number"
-                  value={reward.coins_reward}
-                  onChange={(e) => {
-                    const newRewards = [...finalRewards];
-                    newRewards[index].coins_reward = parseInt(e.target.value) || 0;
-                    setFinalRewards(newRewards);
-                  }}
-                  placeholder="Moedas"
-                  className="flex-1"
-                />
-                <span className="text-sm text-muted-foreground">moedas</span>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              Tarefas do Desafio
               <Button
-                type="button"
-                size="sm"
-                onClick={addChallengeItem}
-                className="gap-2"
+                type="submit"
+                className="w-full"
+                disabled={isCreating}
               >
-                <Plus className="h-4 w-4" />
-                Adicionar Tarefa
+                {isCreating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Criando Desafio...
+                  </>
+                ) : (
+                  'Criar Desafio'
+                )}
               </Button>
-            </CardTitle>
-            <CardDescription>
-              Configure as tarefas que aparecerão durante o desafio
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {challengeItems.map((item, index) => (
-              <div key={index} className="border rounded-lg p-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium">Tarefa {index + 1}</h3>
-                  {challengeItems.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeChallengeItem(index)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="space-y-2">
-                    <Label>Título da Tarefa *</Label>
-                    <Input
-                      value={item.title}
-                      onChange={(e) => updateChallengeItem(index, 'title', e.target.value)}
-                      placeholder="Ex: Fazer 50 flexões"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Descrição</Label>
-                    <Textarea
-                      value={item.description}
-                      onChange={(e) => updateChallengeItem(index, 'description', e.target.value)}
-                      placeholder="Instruções detalhadas..."
-                      rows={2}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label>Pontos XP</Label>
-                      <Input
-                        type="number"
-                        value={item.xp_points}
-                        onChange={(e) => updateChallengeItem(index, 'xp_points', parseInt(e.target.value) || 0)}
-                        min="1"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Horário</Label>
-                      <Input
-                        type="time"
-                        value={item.unlock_time}
-                        onChange={(e) => updateChallengeItem(index, 'unlock_time', e.target.value)}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Foto Obrigatória</Label>
-                      <div className="flex items-center space-x-2 h-10">
-                        <input
-                          type="checkbox"
-                          checked={item.requires_photo}
-                          onChange={(e) => updateChallengeItem(index, 'requires_photo', e.target.checked)}
-                          className="h-4 w-4"
-                        />
-                        <span className="text-sm">Sim</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Dias da Semana</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {weekDays.map((day) => (
-                        <Button
-                          key={day.value}
-                          type="button"
-                          variant={item.unlock_days.includes(day.value) ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => {
-                            const updatedDays = item.unlock_days.includes(day.value)
-                              ? item.unlock_days.filter(d => d !== day.value)
-                              : [...item.unlock_days, day.value];
-                            updateChallengeItem(index, 'unlock_days', updatedDays);
-                          }}
-                        >
-                          {day.label}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            <Button
-              type="submit"
-              className="w-full bg-gradient-to-r from-primary to-primary/80"
-              disabled={isCreating}
-              onClick={handleSubmit}
-            >
-              {isCreating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Criar Desafio
-            </Button>
+            </form>
           </CardContent>
         </Card>
       </div>
