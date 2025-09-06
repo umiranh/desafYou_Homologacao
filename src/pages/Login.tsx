@@ -147,10 +147,11 @@ export default function Login() {
       <div className="w-full max-w-sm mx-auto space-y-6">
         {/* Logo */}
         <div className="text-center space-y-2">
-          <div className="text-4xl md:text-5xl font-black tracking-tighter">
-            <span className="text-primary">DESAF</span>
-            <span className="text-accent">YOU</span>
-          </div>
+          <img 
+            src="/lovable-uploads/1c679761-2e86-4b06-b72c-b97d9033279d.png" 
+            alt="DESAFYOU Logo" 
+            className="h-16 md:h-20 mx-auto object-contain"
+          />
         </div>
 
         <Card className="border-0 shadow-xl backdrop-blur-sm bg-white/90 rounded-3xl overflow-hidden w-full mx-2">
