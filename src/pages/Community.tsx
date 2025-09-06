@@ -7,9 +7,8 @@ import { BottomNav } from '@/components/ui/bottom-nav';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useRateLimit } from '@/hooks/useRateLimit';
-import { sanitizeInput } from '@/utils/inputSanitizer';
-import { logSecurityEvent } from '@/utils/securityAudit';
+import { sanitizeHtml } from '@/utils/inputSanitizer';
+import { logSecurityEvent, SECURITY_EVENTS } from '@/utils/securityAudit';
 import { Heart, MessageCircle, Camera, Send, Trophy, Loader2, Users } from 'lucide-react';
 
 interface Post {
@@ -49,7 +48,8 @@ export default function Community() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const { toast } = useToast();
-  const { checkRateLimit } = useRateLimit();
+  // Rate limiting state
+  const [rateLimitState, setRateLimitState] = useState<{ [key: string]: number[] }>({});
   const [posts, setPosts] = useState<Post[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [selectedChallenge, setSelectedChallenge] = useState<string>('all');
@@ -269,8 +269,16 @@ export default function Community() {
       return;
     }
 
-    // Rate limiting
-    if (!checkRateLimit('post_creation', 5, 60000)) { // 5 posts per minute
+    // Rate limiting - 5 posts per minute
+    const rateLimitKey = `${user.id}-post_creation`;
+    const now = Date.now();
+    const windowMs = 60000; // 1 minute
+    const maxAttempts = 5;
+    
+    const attempts = rateLimitState[rateLimitKey] || [];
+    const recentAttempts = attempts.filter(timestamp => now - timestamp < windowMs);
+    
+    if (recentAttempts.length >= maxAttempts) {
       toast({
         title: "Muitos posts",
         description: "Aguarde um momento antes de postar novamente",
@@ -278,12 +286,18 @@ export default function Community() {
       });
       return;
     }
+    
+    // Update rate limit state
+    setRateLimitState(prev => ({
+      ...prev,
+      [rateLimitKey]: [...recentAttempts, now]
+    }));
 
     setIsPosting(true);
 
     try {
       // Sanitize input
-      const sanitizedContent = sanitizeInput(newPost.trim());
+      const sanitizedContent = sanitizeHtml(newPost.trim());
       
       let imageUrl = '';
       if (selectedImage) {
@@ -302,9 +316,13 @@ export default function Community() {
       if (error) throw error;
 
       // Log security event
-      await logSecurityEvent('post_created', user.id, {
-        challenge_id: selectedChallenge,
-        has_image: !!imageUrl
+      await logSecurityEvent({
+        event_type: 'post_created',
+        target_user_id: user.id,
+        event_data: {
+          challenge_id: selectedChallenge,
+          has_image: !!imageUrl
+        }
       });
 
       toast({
