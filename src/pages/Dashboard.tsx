@@ -186,8 +186,12 @@ export default function Dashboard() {
     const matchesSearch = challenge.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          challenge.description.toLowerCase().includes(searchQuery.toLowerCase());
     
-    const matchesLevel = selectedLevel === 'all' || selectedLevel === 'enrolled' ||
-                        challenge.title.toLowerCase().includes(selectedLevel.toLowerCase());
+    // Check if challenge matches difficulty level
+    const challengeLevel = challenge.description.toLowerCase();
+    const matchesLevel = selectedLevel === 'all' || 
+                        (selectedLevel === 'iniciante' && challengeLevel.includes('iniciante')) ||
+                        (selectedLevel === 'intermediário' && challengeLevel.includes('intermediário')) ||
+                        (selectedLevel === 'avançado' && challengeLevel.includes('avançado'));
     
     const matchesEnrolled = selectedLevel !== 'enrolled' || challenge.user_enrolled;
     

@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Heart, MessageCircle, Camera, Send, Trophy, Loader2 } from 'lucide-react';
+import { useRateLimit } from '@/hooks/useRateLimit';
+import { sanitizeInput } from '@/utils/inputSanitizer';
+import { logSecurityEvent } from '@/utils/securityAudit';
+import { Heart, MessageCircle, Camera, Send, Trophy, Loader2, Users } from 'lucide-react';
 
 interface Post {
   id: string;
@@ -49,6 +49,7 @@ export default function Community() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const { toast } = useToast();
+  const { checkRateLimit } = useRateLimit();
   const [posts, setPosts] = useState<Post[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [selectedChallenge, setSelectedChallenge] = useState<string>('all');
@@ -203,6 +204,28 @@ export default function Community() {
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Validate file size and type
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      
+      if (file.size > maxSize) {
+        toast({
+          title: "Arquivo muito grande",
+          description: "A imagem deve ter no máximo 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          title: "Tipo de arquivo inválido",
+          description: "Apenas imagens JPEG, PNG, GIF e WebP são permitidas",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       setSelectedImage(file);
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -246,9 +269,22 @@ export default function Community() {
       return;
     }
 
+    // Rate limiting
+    if (!checkRateLimit('post_creation', 5, 60000)) { // 5 posts per minute
+      toast({
+        title: "Muitos posts",
+        description: "Aguarde um momento antes de postar novamente",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsPosting(true);
 
     try {
+      // Sanitize input
+      const sanitizedContent = sanitizeInput(newPost.trim());
+      
       let imageUrl = '';
       if (selectedImage) {
         imageUrl = await uploadImage(selectedImage);
@@ -257,13 +293,19 @@ export default function Community() {
       const { error } = await supabase
         .from('community_posts')
         .insert({
-          content: newPost.trim(),
+          content: sanitizedContent,
           image_url: imageUrl || null,
           user_id: user.id,
           challenge_id: selectedChallenge,
         });
 
       if (error) throw error;
+
+      // Log security event
+      await logSecurityEvent('post_created', user.id, {
+        challenge_id: selectedChallenge,
+        has_image: !!imageUrl
+      });
 
       toast({
         title: "Post criado!",
@@ -391,252 +433,218 @@ export default function Community() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen pb-24 bg-gradient-to-br from-primary/5 via-background to-accent/5">
-      <header className="bg-background/95 backdrop-blur-sm sticky top-0 z-50 border-b shadow-sm">
-        <div className="container mx-auto px-4 py-3 max-w-4xl">
-          <div className="text-center mb-4">
-            <h1 className="text-2xl font-bold text-primary mb-1">💬 Comunidade</h1>
-            <p className="text-sm text-muted-foreground">Compartilhe seu progresso</p>
+    <div className="min-h-screen pb-20 bg-gradient-to-br from-secondary/10 via-background to-secondary/5">
+      <header className="bg-background/95 backdrop-blur-sm sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4 max-w-md">
+          {/* Header with title and avatar */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Users className="h-6 w-6 text-foreground" />
+              <h1 className="text-xl font-bold text-foreground">Comunidade</h1>
+            </div>
+            <div className="h-10 w-10 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center">
+              <Trophy className="h-5 w-5 text-primary-foreground" />
+            </div>
           </div>
           
-          {/* Challenge filter */}
-          <div className="space-y-3">
-            <select
-              value={selectedChallenge}
-              onChange={(e) => setSelectedChallenge(e.target.value)}
-              className="w-full p-2.5 rounded-xl border-0 bg-white/60 backdrop-blur-sm shadow-sm text-primary font-medium focus:ring-2 focus:ring-primary/20 focus:outline-none text-sm"
+          {/* Tab Navigation */}
+          <div className="flex gap-1 mb-4 bg-muted rounded-full p-1">
+            <Button 
+              variant="ghost"
+              size="sm"
+              className="rounded-full flex-1 text-sm py-2 bg-foreground text-background hover:bg-foreground/90"
             >
-              {challenges.length > 0 ? (
-                <>
-                  <option value="all">🏆 Todos os Meus Desafios</option>
-                  {challenges.map((challenge) => (
-                    <option key={challenge.id} value={challenge.id}>
-                      {challenge.title}
-                    </option>
-                  ))}
-                </>
-              ) : (
-                <option value="all">📝 Inscreva-se em um desafio primeiro</option>
-              )}
-            </select>
+              Meu feed
+            </Button>
+            <Button 
+              variant="ghost"
+              size="sm"
+              className="rounded-full flex-1 text-sm py-2 text-muted-foreground hover:bg-muted"
+            >
+              Minhas comunidades
+            </Button>
+            <Button 
+              variant="ghost"
+              size="sm"
+              className="rounded-full flex-1 text-sm py-2 text-muted-foreground hover:bg-muted"
+            >
+              Todas
+            </Button>
+          </div>
 
-            {/* New post form */}
-            <Card className="bg-background/90 backdrop-blur-sm border border-primary/20 shadow-lg">
-              <CardContent className="p-4">
-                <div className="space-y-3">
-                  <Textarea
-                    placeholder="💪 Compartilhe seu progresso e inspire outros..."
+          {/* New post form */}
+          <Card className="bg-background border-0 shadow-sm rounded-2xl mb-4">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="h-10 w-10 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center flex-shrink-0">
+                  <Trophy className="h-5 w-5 text-primary-foreground" />
+                </div>
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    placeholder="o que tem a dizer?"
                     value={newPost}
                     onChange={(e) => setNewPost(e.target.value)}
-                    rows={2}
-                    className="border-primary/20 bg-background rounded-xl resize-none focus:ring-2 focus:ring-primary/20 text-sm"
+                    className="w-full bg-transparent border-0 outline-none text-sm text-muted-foreground placeholder:text-muted-foreground"
                   />
-                  
-                  {imagePreview && (
-                    <div className="relative">
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="max-h-48 rounded-md object-cover"
-                      />
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="absolute top-2 right-2"
-                        onClick={() => {
-                          setSelectedImage(null);
-                          setImagePreview('');
-                        }}
-                      >
-                        ✕
-                      </Button>
-                    </div>
-                  )}
-                  
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-2">
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageSelect}
-                        className="hidden"
-                        id="image-upload"
-                      />
-                      <label htmlFor="image-upload">
-                        <Button variant="outline" size="sm" asChild className="rounded-full border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary text-xs px-3 py-1.5">
-                          <span className="cursor-pointer">
-                            <Camera className="h-3 w-3 mr-1" />
-                            📸 Foto
-                          </span>
-                        </Button>
-                      </label>
-                    </div>
-                    
-                     <Button
-                      onClick={createPost}
-                      disabled={!newPost.trim() || isPosting || selectedChallenge === 'all' || challenges.length === 0}
-                      className="gap-2 rounded-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white font-medium px-6 py-2 shadow-lg text-sm"
-                    >
-                      {isPosting ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <Send className="h-3 w-3" />
-                      )}
-                      Compartilhar
-                    </Button>
-                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+                <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center">
+                  <Camera className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </div>
+              
+              {imagePreview && (
+                <div className="relative mb-3">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="max-h-48 rounded-lg object-cover w-full"
+                  />
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="absolute top-2 right-2"
+                    onClick={() => {
+                      setSelectedImage(null);
+                      setImagePreview('');
+                    }}
+                  >
+                    ✕
+                  </Button>
+                </div>
+              )}
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                    className="hidden"
+                    id="image-upload"
+                  />
+                  <label htmlFor="image-upload">
+                    <Button variant="ghost" size="sm" asChild className="text-muted-foreground text-xs px-3">
+                      <span className="cursor-pointer flex items-center gap-1">
+                        <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center">
+                          <Users className="h-3 w-3" />
+                        </div>
+                        Público
+                      </span>
+                    </Button>
+                  </label>
+                </div>
+                
+                <Button
+                  onClick={createPost}
+                  disabled={!newPost.trim() || isPosting || selectedChallenge === 'all' || challenges.length === 0}
+                  className="rounded-full bg-foreground text-background hover:bg-foreground/90 px-6 py-1 h-8 text-sm font-medium"
+                >
+                  {isPosting ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    "Publicar"
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-4 space-y-4 max-w-4xl">
+      <div className="container mx-auto px-4 py-4 space-y-4 max-w-md">
         {loadingPosts ? (
-          <div className="flex items-center justify-center py-16">
+          <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
               <p className="text-muted-foreground">Carregando posts da comunidade...</p>
             </div>
           </div>
-        ) : posts.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="bg-background/90 rounded-3xl p-8 border border-primary/20">
-              <div className="text-6xl mb-4">💭</div>
-              <h3 className="text-xl font-semibold text-primary mb-2">Nenhum post ainda</h3>
-              <p className="text-muted-foreground">
-                Seja o primeiro a compartilhar seu progresso e inspirar outros!
-              </p>
-            </div>
-          </div>
         ) : (
-          posts.map((post) => (
-            <Card key={post.id} className="bg-background/90 backdrop-blur-sm border border-primary/10 shadow-xl rounded-3xl overflow-hidden hover:shadow-2xl transition-all duration-300">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Avatar className="border-2 border-white/50">
-                      {post.profiles?.avatar_url ? (
-                        <img 
-                          src={post.profiles.avatar_url} 
-                          alt={post.profiles?.display_name} 
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                          }}
-                        />
-                      ) : (
-                        <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-white font-bold">
-                          {post.profiles?.display_name?.charAt(0) || 'U'}
-                        </AvatarFallback>
-                      )}
-                    </Avatar>
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <p className="font-semibold text-sm text-primary">
-                          {post.profiles?.display_name || 'Usuário'}
-                        </p>
-                        <Badge variant="outline" className="text-xs border-primary/20 bg-primary/10">
-                          <Trophy className="h-3 w-3 mr-1" />
-                          Nível {post.profiles?.level}
-                        </Badge>
+          <div className="space-y-4">
+            {posts.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground text-sm">
+                  {challenges.length === 0 
+                    ? "Inscreva-se em um desafio para ver posts da comunidade"
+                    : "Ainda não há posts neste feed"}
+                </p>
+              </div>
+            ) : (
+              posts.map((post) => {
+                const isLiked = post.post_likes.some(like => like.user_id === user.id);
+                
+                return (
+                  <Card key={post.id} className="bg-background border-0 shadow-sm rounded-2xl overflow-hidden mb-4">
+                    <CardContent className="p-0">
+                      {/* Challenge Tag */}
+                      <div className="px-4 pt-4 pb-2">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>Postado em {post.challenges.title}</span>
+                          <button className="text-muted-foreground hover:text-primary">
+                            Ver comunidade
+                          </button>
+                        </div>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {post.challenges?.title} • {formatDate(post.created_at)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="pt-0">
-                <div className="space-y-3">
-                  <p className="text-sm">{post.content}</p>
-                  
-                  {post.image_url && (
-                    <img
-                      src={post.image_url}
-                      alt="Post"
-                      className="rounded-md max-h-64 object-cover w-full"
-                    />
-                  )}
-                  
-                  <div className="flex items-center space-x-4 pt-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => toggleLike(post.id)}
-                      className={`gap-2 ${
-                        post.post_likes.some(like => like.user_id === user.id)
-                          ? 'text-red-500 hover:text-red-600'
-                          : 'text-muted-foreground'
-                      }`}
-                    >
-                      <Heart 
-                        className={`h-4 w-4 ${
-                          post.post_likes.some(like => like.user_id === user.id)
-                            ? 'fill-current'
-                            : ''
-                        }`}
-                      />
-                      {post.post_likes.length}
-                    </Button>
-                    
-                    <Button variant="ghost" size="sm" className="gap-2">
-                      <MessageCircle className="h-4 w-4" />
-                      {post.post_comments.length}
-                    </Button>
-                  </div>
-                  
-                  {/* Comments */}
-                  {post.post_comments.length > 0 && (
-                    <div className="space-y-2 pt-2 border-t">
-                      {post.post_comments.slice(0, 2).map((comment) => (
-                        <div key={comment.id} className="flex space-x-2">
-                          <Avatar className="h-6 w-6">
-                            {comment.profiles?.avatar_url ? (
-                              <img 
-                                src={comment.profiles.avatar_url} 
-                                alt={comment.profiles?.display_name} 
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                }}
-                              />
-                            ) : (
-                              <AvatarFallback className="text-xs">
-                                {comment.profiles?.display_name?.charAt(0) || 'U'}
-                              </AvatarFallback>
-                            )}
-                          </Avatar>
-                          <div className="flex-1">
-                            <p className="text-xs">
-                              <span className="font-medium">
-                                {comment.profiles?.display_name || 'Usuário'}
-                              </span>
-                              {' '}
-                              {comment.content}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {formatDate(comment.created_at)}
-                            </p>
+                      
+                      {/* Post Content */}
+                      <div className="px-4 pb-4">
+                        <div className="flex items-start gap-3 mb-3">
+                          <div className="h-10 w-10 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-primary-foreground font-bold">
+                              {post.profiles.display_name?.[0]?.toUpperCase() || 'U'}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-medium text-foreground text-sm">{post.profiles.display_name || 'Usuário'}</h3>
+                              <span className="text-xs text-muted-foreground">#{post.profiles.level || 1}</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">Sorocaba/SP</p>
                           </div>
                         </div>
-                      ))}
-                      {post.post_comments.length > 2 && (
-                        <p className="text-xs text-muted-foreground">
-                          +{post.post_comments.length - 2} comentários
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))
+
+                        <p className="text-foreground text-sm mb-3 leading-relaxed">{post.content}</p>
+
+                        {post.image_url && (
+                          <div className="mb-3">
+                            <img
+                              src={post.image_url}
+                              alt="Post image"
+                              className="w-full rounded-lg object-cover max-h-64"
+                            />
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <button
+                              onClick={() => toggleLike(post.id)}
+                              className={`flex items-center gap-1 text-xs transition-colors ${
+                                isLiked ? 'text-red-500' : 'text-muted-foreground hover:text-red-500'
+                              }`}
+                            >
+                              <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
+                              <span>{post.post_likes.length}</span>
+                            </button>
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <MessageCircle className="h-4 w-4" />
+                              <span>{post.post_comments.length}</span>
+                            </div>
+                          </div>
+                          <button className="text-muted-foreground hover:text-primary">
+                            <div className="h-4 w-4 rotate-90">
+                              <Send className="h-4 w-4" />
+                            </div>
+                          </button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
+          </div>
         )}
       </div>
 

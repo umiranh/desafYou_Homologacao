@@ -324,7 +324,7 @@ export default function Challenges() {
   const getUserPosition = (challengeId: string) => {
     const ranking = rankings[challengeId];
     if (!ranking) return null;
-    return ranking.find(user => user.user_id === user!.id)?.position;
+    return ranking.find(u => u.user_id === user?.id)?.position;
   };
 
   const formatDate = (dateString: string) => {
@@ -334,8 +334,6 @@ export default function Challenges() {
       year: 'numeric',
     });
   };
-
-  const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
   if (loading || loadingChallenges) {
     return (
@@ -348,17 +346,21 @@ export default function Challenges() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen pb-24 bg-gradient-to-br from-primary/5 via-background to-accent/5">
-      <header className="bg-background/95 backdrop-blur-sm sticky top-0 z-50 border-b shadow-sm">
-        <div className="container mx-auto px-4 py-6 max-w-6xl">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-primary mb-2">🏆 Meus Desafios</h1>
-            <p className="text-muted-foreground">Acompanhe seu progresso e complete suas tarefas</p>
-          </div>
+    <div className="min-h-screen pb-20 bg-gradient-to-br from-secondary/10 via-background to-secondary/5">
+      <header className="bg-background/95 backdrop-blur-sm sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4 max-w-md">
+          {challenges.length > 0 && (
+            <div className="flex items-center justify-between">
+              <h1 className="text-xl font-bold text-foreground">{challenges[0].title}</h1>
+              <div className="h-10 w-10 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center">
+                <Trophy className="h-5 w-5 text-primary-foreground" />
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-6 space-y-6 max-w-6xl">
+      <div className="container mx-auto px-4 py-4 space-y-4 max-w-md">
         {challenges.length === 0 ? (
           <div className="text-center py-20">
             <div className="bg-background/90 rounded-3xl p-12 border border-primary/20 max-w-md mx-auto">
@@ -376,247 +378,172 @@ export default function Challenges() {
             </div>
           </div>
         ) : (
-          <div className="grid gap-6 lg:gap-8">
+          <div className="space-y-4">
             {challenges.map((challenge) => {
               const totalXP = getTotalXP(challenge);
               const maxXP = getMaxXP(challenge);
               const progress = maxXP > 0 ? (totalXP / maxXP) * 100 : 0;
               const userPosition = getUserPosition(challenge.id);
-              
+              const daysTotal = Math.ceil((new Date(challenge.end_date).getTime() - new Date(challenge.start_date).getTime()) / (1000 * 60 * 60 * 24));
+              const daysPassed = Math.ceil((new Date().getTime() - new Date(challenge.start_date).getTime()) / (1000 * 60 * 60 * 24));
+              const currentDay = Math.min(Math.max(1, daysPassed), daysTotal);
+
               return (
-                <Card key={challenge.id} className="bg-background/90 backdrop-blur-sm border border-primary/10 shadow-xl rounded-3xl overflow-hidden hover:shadow-2xl transition-all duration-300">
-                <CardHeader className="p-6 bg-gradient-to-r from-primary/5 to-accent/5">
-                  <div className="flex flex-col space-y-4 lg:flex-row lg:items-start lg:justify-between lg:space-y-0">
-                    <div className="flex-1">
-                      <CardTitle className="text-xl lg:text-2xl text-primary mb-2 leading-tight">{challenge.title}</CardTitle>
-                      <p className="text-muted-foreground leading-relaxed">{challenge.description}</p>
-                    </div>
-                    <div className="flex items-center space-x-3 flex-shrink-0">
-                      {userPosition && (
-                        <Badge variant="outline" className="gap-2 border-primary/30 bg-primary/10 text-primary px-4 py-2">
-                          <Medal className="h-4 w-4" />
-                          Posição #{userPosition}
-                        </Badge>
-                      )}
-                      <Badge variant="secondary" className="bg-accent/20 text-accent px-4 py-2 font-semibold">
-                        {totalXP} / {maxXP} XP
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  <div className="flex flex-col space-y-3 text-sm text-muted-foreground lg:flex-row lg:items-center lg:space-x-6 lg:space-y-0">
-                    <div className="flex items-center space-x-2">
-                      <div className="h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center">
-                        <Clock className="h-4 w-4 text-primary" />
-                      </div>
-                      <span>{formatDate(challenge.start_date)} - {formatDate(challenge.end_date)}</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="h-8 w-8 bg-accent/10 rounded-full flex items-center justify-center">
-                        <Users className="h-4 w-4 text-accent" />
-                      </div>
-                      <span>{rankings[challenge.id]?.length || 0} participantes ativos</span>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-3 bg-background/50 rounded-2xl p-4">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">Progresso Geral</span>
-                      <span className="text-lg font-bold text-primary">{Math.round(progress)}%</span>
-                    </div>
-                    <Progress value={progress} className="h-3 bg-muted" />
-                  </div>
-                </CardHeader>
-
-                <CardContent className="space-y-6 p-6">
-                  {/* Ranking */}
-                  {rankings[challenge.id] && rankings[challenge.id].length > 0 && (
-                    <Card className="border border-primary/10 bg-background/50">
-                      <CardHeader className="p-6 bg-gradient-to-r from-primary/5 to-accent/5">
-                        <CardTitle className="text-lg flex items-center gap-3">
-                          <div className="h-8 w-8 bg-primary/20 rounded-full flex items-center justify-center">
-                            <Trophy className="h-4 w-4 text-primary" />
-                          </div>
-                          Ranking do Desafio
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-6">
-                        <div className="space-y-2">
-                          {rankings[challenge.id].slice(0, 5).map((user, index) => (
-                            <div
-                              key={user.user_id}
-                              className={`flex items-center justify-between p-3 rounded-xl ${
-                                user.user_id === user!.id ? 'bg-primary/10' : 'bg-white/30'
-                              }`}
-                            >
-                              <div className="flex items-center space-x-3">
-                                <div className={`w-7 h-7 md:w-6 md:h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                                  index === 0 ? 'bg-yellow-500 text-white' :
-                                  index === 1 ? 'bg-gray-400 text-white' :
-                                  index === 2 ? 'bg-amber-600 text-white' :
-                                  'bg-muted text-muted-foreground'
-                                }`}>
-                                  {index + 1}
-                                </div>
-                                <span className="font-medium text-sm truncate">{user.display_name}</span>
-                              </div>
-                              <span className="text-xs md:text-sm font-medium flex-shrink-0">{user.total_xp} XP</span>
+                <div key={challenge.id} className="space-y-4">
+                  {/* Progress Card */}
+                  <Card className="bg-gradient-to-r from-orange-400 to-orange-500 text-white rounded-2xl overflow-hidden">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h2 className="text-2xl font-bold mb-1">Dia {currentDay}</h2>
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="w-24 bg-white/20 rounded-full h-2">
+                              <div 
+                                className="bg-white h-2 rounded-full transition-all duration-500" 
+                                style={{ width: `${progress}%` }}
+                              />
                             </div>
-                          ))}
+                            <div className="w-4 h-4 bg-foreground rounded-full" />
+                          </div>
+                          <p className="text-sm opacity-90">
+                            DESAFIO<br />
+                            <span className="font-bold">{Math.round(progress)}% CONCLUÍDO</span>
+                          </p>
                         </div>
-                        
-                        {/* Challenge rewards */}
-                        {challenge.challenge_rewards.length > 0 && (
-                          <div className="mt-4 pt-4 border-t">
-                            <h4 className="text-sm font-medium mb-2">Recompensas</h4>
-                            <div className="space-y-1">
-                              {challenge.challenge_rewards
-                                .sort((a, b) => a.position - b.position)
-                                .map((reward) => (
-                                <div key={reward.position} className="flex justify-between text-xs">
-                                  <span>{reward.position}º lugar</span>
-                                  <span className="font-medium text-yellow-600">
-                                    {reward.coins_reward} moedas
-                                  </span>
-                                </div>
-                              ))}
+                        <Button 
+                          variant="secondary" 
+                          className="bg-white/20 hover:bg-white/30 text-white border-white/30 rounded-full px-6"
+                        >
+                          Ver Progresso
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Ranking Section */}
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold">Ranking</h3>
+                    <h3 className="text-lg font-bold">O que estão falando</h3>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    {/* Ranking */}
+                    <div className="space-y-2">
+                      {rankings[challenge.id] && rankings[challenge.id].slice(0, 5).map((u, index) => (
+                        <div key={u.user_id} className="flex items-center gap-2">
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                            index === 0 ? 'bg-yellow-500 text-white' :
+                            index === 1 ? 'bg-gray-400 text-white' :
+                            index === 2 ? 'bg-amber-600 text-white' :
+                            'bg-muted text-muted-foreground'
+                          }`}>
+                            {index === 0 ? '🏆' : index + 1}
+                          </div>
+                          <div className="h-8 w-8 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-primary-foreground font-bold text-xs">
+                              {u.display_name?.[0]?.toUpperCase() || 'U'}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{u.display_name}</p>
+                            {u.user_id === user.id && <p className="text-xs text-muted-foreground">Você</p>}
+                          </div>
+                          {index < 3 && <Medal className="h-4 w-4 text-muted-foreground" />}
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Community Posts Preview */}
+                    <div className="space-y-2">
+                      <Card className="bg-muted/30 border-0 p-3">
+                        <div className="flex items-start gap-2">
+                          <div className="h-6 w-6 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-primary-foreground font-bold text-xs">P</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1 mb-1">
+                              <span className="text-xs font-medium">Paulo Donato</span>
+                              <span className="text-xs text-muted-foreground">#5</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground line-clamp-2">
+                              O shot de limão com certeza é a pior parte 🤢
+                            </p>
+                            <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                              <span>125</span>
+                              <span>33</span>
                             </div>
                           </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )}
+                        </div>
+                      </Card>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    variant="outline" 
+                    className="w-full rounded-full bg-foreground text-background hover:bg-foreground/90 mb-6"
+                    onClick={() => navigate('/community')}
+                  >
+                    Ver comunidade
+                  </Button>
 
-                  {/* Challenge items */}
-                  <div className="space-y-4">
-                    <h3 className="font-medium text-base">Tarefas</h3>
-                    {challenge.challenge_items
-                      .sort((a, b) => a.order_index - b.order_index)
-                      .map((item) => {
-                        const completed = isTaskCompleted(item.id);
-                        const isCompleting = completingTasks.has(item.id);
-                        
-                        return (
-                          <Card key={item.id} className={`border-0 ${completed ? 'bg-green-50/80' : 'bg-white/60'}`}>
-                            <CardContent className="p-4">
-                              <div className="flex items-start space-x-3">
-                                <div className="pt-1 flex-shrink-0">
-                                  {completed ? (
-                                    <CheckCircle className="h-6 w-6 text-green-500" />
-                                  ) : (
-                                    <Circle className="h-6 w-6 text-muted-foreground" />
-                                  )}
-                                </div>
-                                
-                                <div className="flex-1 space-y-3 min-w-0">
-                                  <div>
-                                    <h4 className="font-medium text-sm md:text-base leading-tight">{item.title}</h4>
-                                    {item.description && (
-                                      <p className="text-xs md:text-sm text-muted-foreground mt-2 leading-relaxed">
-                                        {item.description}
-                                      </p>
-                                    )}
-                                  </div>
-                                  
-                                  <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                                    <div className="flex items-center space-x-1">
-                                      <Star className="h-3 w-3 flex-shrink-0" />
-                                      <span>{item.xp_points} XP</span>
-                                    </div>
-                                    <div className="flex items-center space-x-1">
-                                      <Clock className="h-3 w-3 flex-shrink-0" />
-                                      <span>{item.unlock_time}</span>
-                                    </div>
-                                    <div className="flex items-center space-x-1">
-                                      <span className="break-words">
-                                        {item.unlock_days.map(day => weekDays[day]).join(', ')}
-                                      </span>
-                                    </div>
-                                    {item.requires_photo && (
-                                      <div className="flex items-center space-x-1 text-primary">
-                                        <Camera className="h-3 w-3 flex-shrink-0" />
-                                        <span>Foto obrigatória</span>
+                  {/* Challenge Items */}
+                  <div className="bg-foreground rounded-t-3xl -mx-4 px-4 pt-6 pb-20">
+                    <h3 className="text-lg font-bold text-background mb-4">Tarefas</h3>
+                    <div className="space-y-3">
+                      {challenge.challenge_items
+                        ?.sort((a, b) => a.order_index - b.order_index)
+                        .map((item) => {
+                          const isCompleted = isTaskCompleted(item.id);
+                          
+                          return (
+                            <Card key={item.id} className={`bg-background border-0 rounded-2xl overflow-hidden ${
+                              isCompleted ? 'opacity-50' : ''
+                            }`}>
+                              <CardContent className="p-4">
+                                <div className="flex items-center gap-4">
+                                  <div className="flex-shrink-0">
+                                    {isCompleted ? (
+                                      <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                                        <CheckCircle className="h-5 w-5 text-white" />
+                                      </div>
+                                    ) : (
+                                      <div className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center">
+                                        <Circle className="h-5 w-5 text-muted-foreground" />
                                       </div>
                                     )}
                                   </div>
                                   
-                                  {!completed && (
-                                    <div className="space-y-4">
-                                      <Textarea
-                                        placeholder="Adicione uma observação (opcional)..."
-                                        value={notes[item.id] || ''}
-                                        onChange={(e) => setNotes(prev => ({ ...prev, [item.id]: e.target.value }))}
-                                        rows={3}
-                                        className="text-sm resize-none border-primary/20 focus:border-primary/40"
-                                      />
-                                      
-                                      {item.requires_photo && (
-                                        <div className="space-y-3">
-                                          <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={handleImageSelect}
-                                            className="hidden"
-                                            id={`image-upload-${item.id}`}
-                                          />
-                                          <label htmlFor={`image-upload-${item.id}`}>
-                                            <Button variant="outline" size="default" asChild className="w-full md:w-auto">
-                                              <span className="cursor-pointer gap-2 py-3">
-                                                <Camera className="h-4 w-4" />
-                                                {selectedImage ? 'Trocar Foto' : 'Adicionar Foto'}
-                                              </span>
-                                            </Button>
-                                          </label>
-                                          
-                                          {imagePreview && (
-                                            <div className="relative bg-gray-50 rounded-xl p-3">
-                                              <img
-                                                src={imagePreview}
-                                                alt="Preview"
-                                                className="w-full max-h-48 md:max-h-32 rounded-lg object-cover"
-                                              />
-                                              <Button
-                                                variant="secondary"
-                                                size="sm"
-                                                className="absolute -top-2 -right-2 h-8 w-8 rounded-full shadow-lg"
-                                                onClick={() => {
-                                                  setSelectedImage(null);
-                                                  setImagePreview('');
-                                                }}
-                                              >
-                                                ✕
-                                              </Button>
-                                            </div>
-                                          )}
-                                        </div>
-                                      )}
-                                      
+                                  <div className="flex-1">
+                                    <h4 className="font-medium text-foreground mb-1">{item.title}</h4>
+                                    <p className="text-sm text-muted-foreground">{item.description}</p>
+                                  </div>
+                                  
+                                  {!isCompleted && (
+                                    <div className="flex-shrink-0">
                                       <Button
-                                        size="default"
                                         onClick={() => completeTask(challenge.id, item.id, item.requires_photo, item.xp_points)}
-                                        disabled={isCompleting || (item.requires_photo && !selectedImage)}
-                                        className="w-full gap-2 py-3 bg-primary hover:bg-primary/90"
+                                        disabled={completingTasks.has(item.id)}
+                                        size="sm"
+                                        className="w-10 h-10 rounded-full bg-muted text-muted-foreground hover:bg-foreground hover:text-background"
                                       >
-                                        {isCompleting ? (
+                                        {completingTasks.has(item.id) ? (
                                           <Loader2 className="h-4 w-4 animate-spin" />
                                         ) : (
-                                          <CheckCircle className="h-4 w-4" />
+                                          <Camera className="h-4 w-4" />
                                         )}
-                                        Concluir Tarefa
                                       </Button>
                                     </div>
                                   )}
                                 </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
