@@ -143,25 +143,25 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative">
-      <div className="w-full max-w-md mx-auto space-y-8">
+    <div className="min-h-screen flex items-center justify-center p-2 relative">
+      <div className="w-full max-w-sm mx-auto space-y-6">
         {/* Logo */}
         <div className="text-center space-y-2">
-          <div className="text-5xl font-black tracking-tighter">
+          <div className="text-4xl md:text-5xl font-black tracking-tighter">
             <span className="text-primary">DESAF</span>
             <span className="text-accent">YOU</span>
           </div>
         </div>
 
-        <Card className="border-0 shadow-xl backdrop-blur-sm bg-white/90 rounded-3xl overflow-hidden w-full">
+        <Card className="border-0 shadow-xl backdrop-blur-sm bg-white/90 rounded-3xl overflow-hidden w-full mx-2">
           <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4 bg-secondary/30 rounded-2xl p-1 mx-4 mt-4">
-              <TabsTrigger value="login" className="rounded-xl text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Entrar</TabsTrigger>
-              <TabsTrigger value="signup" className="rounded-xl text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Cadastrar</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 mb-4 bg-secondary/30 rounded-2xl p-1 mx-2 mt-4">
+              <TabsTrigger value="login" className="rounded-xl text-xs md:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Entrar</TabsTrigger>
+              <TabsTrigger value="signup" className="rounded-xl text-xs md:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Cadastrar</TabsTrigger>
             </TabsList>
             
             <TabsContent value="login">
-              <form onSubmit={handleLogin} className="space-y-4 px-4 pb-4">
+              <form onSubmit={handleLogin} className="space-y-4 px-2 pb-4">
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Input
@@ -224,7 +224,7 @@ export default function Login() {
             </TabsContent>
 
             <TabsContent value="signup">
-              <form onSubmit={handleSignup} className="space-y-4 px-4 pb-4">
+              <form onSubmit={handleSignup} className="space-y-4 px-2 pb-4">
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Input

@@ -206,17 +206,6 @@ export default function Challenges() {
     fetchChallenges();
   }, [user, toast]);
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedImage(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
   const uploadImage = async (file: File): Promise<string> => {
     if (!user) throw new Error('User not authenticated');
@@ -508,28 +497,107 @@ export default function Challenges() {
                                       </div>
                                     )}
                                   </div>
-                                  
-                                  <div className="flex-1">
-                                    <h4 className="font-medium text-foreground mb-1">{item.title}</h4>
-                                    <p className="text-sm text-muted-foreground">{item.description}</p>
-                                  </div>
-                                  
-                                  {!isCompleted && (
-                                    <div className="flex-shrink-0">
-                                      <Button
-                                        onClick={() => completeTask(challenge.id, item.id, item.requires_photo, item.xp_points)}
-                                        disabled={completingTasks.has(item.id)}
-                                        size="sm"
-                                        className="w-10 h-10 rounded-full bg-muted text-muted-foreground hover:bg-foreground hover:text-background"
-                                      >
-                                        {completingTasks.has(item.id) ? (
-                                          <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                          <Camera className="h-4 w-4" />
-                                        )}
-                                      </Button>
-                                    </div>
-                                  )}
+                                   
+                                   <div className="flex-1">
+                                     <h4 className="font-medium text-foreground mb-1">{item.title}</h4>
+                                     <p className="text-sm text-muted-foreground">{item.description}</p>
+                                     
+                                     {!isCompleted && item.requires_photo && (
+                                       <div className="mt-3 space-y-2">
+                                         <Textarea
+                                           placeholder="Adicione suas observações (opcional)"
+                                           value={notes[item.id] || ''}
+                                           onChange={(e) => setNotes(prev => ({ ...prev, [item.id]: e.target.value }))}
+                                           rows={2}
+                                           className="text-xs"
+                                         />
+                                         
+                                         {imagePreview && (
+                                           <div className="w-full h-24 rounded-lg overflow-hidden">
+                                             <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                                           </div>
+                                         )}
+                                         
+                                         <input
+                                           type="file"
+                                           accept="image/*"
+                                           onChange={(e) => {
+                                             const file = e.target.files?.[0];
+                                             if (file) {
+                                               setSelectedImage(file);
+                                               const reader = new FileReader();
+                                               reader.onload = (e) => {
+                                                 setImagePreview(e.target?.result as string);
+                                               };
+                                               reader.readAsDataURL(file);
+                                             }
+                                           }}
+                                           className="hidden"
+                                           id={`photo-${item.id}`}
+                                         />
+                                         
+                                         <div className="flex gap-2">
+                                           <Button
+                                             variant="outline"
+                                             size="sm"
+                                             onClick={() => document.getElementById(`photo-${item.id}`)?.click()}
+                                             className="flex-1 text-xs"
+                                           >
+                                             <Camera className="h-3 w-3 mr-1" />
+                                             {imagePreview ? 'Trocar' : 'Foto'}
+                                           </Button>
+                                           
+                                           <Button
+                                             size="sm"
+                                             onClick={() => completeTask(challenge.id, item.id, item.requires_photo, item.xp_points)}
+                                             disabled={completingTasks.has(item.id) || !selectedImage}
+                                             className="text-xs"
+                                           >
+                                             {completingTasks.has(item.id) ? (
+                                               <Loader2 className="h-3 w-3 animate-spin" />
+                                             ) : (
+                                               'Concluir'
+                                             )}
+                                           </Button>
+                                         </div>
+                                       </div>
+                                     )}
+                                     
+                                     {!isCompleted && !item.requires_photo && (
+                                       <div className="mt-3 space-y-2">
+                                         <Textarea
+                                           placeholder="Adicione suas observações (opcional)"
+                                           value={notes[item.id] || ''}
+                                           onChange={(e) => setNotes(prev => ({ ...prev, [item.id]: e.target.value }))}
+                                           rows={2}
+                                           className="text-xs"
+                                         />
+                                         <Button
+                                           size="sm"
+                                           onClick={() => completeTask(challenge.id, item.id, item.requires_photo, item.xp_points)}
+                                           disabled={completingTasks.has(item.id)}
+                                           className="w-full text-xs"
+                                         >
+                                           {completingTasks.has(item.id) ? (
+                                             <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                           ) : (
+                                             <>
+                                               <CheckCircle className="h-3 w-3 mr-1" />
+                                               Concluir (+{item.xp_points} XP)
+                                             </>
+                                           )}
+                                         </Button>
+                                       </div>
+                                     )}
+                                   </div>
+                                   
+                                   {isCompleted && (
+                                     <div className="flex-shrink-0">
+                                       <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center">
+                                         <CheckCircle className="h-4 w-4 text-white" />
+                                       </div>
+                                     </div>
+                                   )}
                                 </div>
                               </CardContent>
                             </Card>

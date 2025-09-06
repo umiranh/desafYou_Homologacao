@@ -477,7 +477,7 @@ export default function Community() {
             </Button>
           </div>
         </div>
-        <BottomNav currentPage="community" onNavigate={(page) => navigate(`/${page}`)} />
+        <BottomNav currentPage="community" onNavigate={(path) => navigate(path)} />
       </div>
     );
   }
@@ -679,7 +679,7 @@ export default function Community() {
         )}
       </div>
 
-      <BottomNav currentPage="community" onNavigate={(page) => navigate(`/${page}`)} />
+      <BottomNav currentPage="community" onNavigate={(path) => navigate(path)} />
     </div>
   );
 }

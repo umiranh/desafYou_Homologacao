@@ -507,8 +507,10 @@ export default function Profile() {
                       <p className="font-bold text-yellow-600">
                         +{achievement.coins_earned} moedas
                       </p>
-                    </div>
-                  </div>
+      </div>
+
+      <BottomNav currentPage="profile" onNavigate={(path) => navigate(path)} />
+    </div>
                 ))}
               </div>
             </CardContent>
