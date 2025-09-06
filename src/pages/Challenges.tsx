@@ -59,11 +59,13 @@ export default function Challenges() {
   const { toast } = useToast();
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [rankings, setRankings] = useState<{ [challengeId: string]: Ranking[] }>({});
+  const [participantCounts, setParticipantCounts] = useState<{ [challengeId: string]: number }>({});
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
   const [completingTasks, setCompletingTasks] = useState<Set<string>>(new Set());
   const [notes, setNotes] = useState<{ [taskId: string]: string }>({});
   const [loadingChallenges, setLoadingChallenges] = useState(true);
+  const [currentChallengeIndex, setCurrentChallengeIndex] = useState(0);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -129,8 +131,9 @@ export default function Challenges() {
 
         setChallenges(challengesWithProgress);
 
-        // Fetch rankings for each challenge
+        // Fetch rankings and participant counts for each challenge
         const challengeRankings: { [challengeId: string]: Ranking[] } = {};
+        const participantCounts: { [challengeId: string]: number } = {};
         
         for (const challenge of challengesWithProgress) {
           try {
@@ -138,6 +141,8 @@ export default function Challenges() {
               .from('challenge_enrollments')
               .select('user_id')
               .eq('challenge_id', challenge.id);
+
+            participantCounts[challenge.id] = enrollmentsData?.length || 0;
 
             if (enrollmentsData && enrollmentsData.length > 0) {
               const userXPs = await Promise.all(
@@ -190,6 +195,7 @@ export default function Challenges() {
         }
 
         setRankings(challengeRankings);
+        setParticipantCounts(participantCounts);
 
       } catch (error: any) {
         console.error('Error fetching challenges:', error);
@@ -364,7 +370,27 @@ export default function Challenges() {
         <div className="container mx-auto px-4 py-4 max-w-md">
           {challenges.length > 0 && (
             <div className="flex items-center justify-between">
-              <h1 className="text-xl font-bold text-foreground">{challenges[0].title}</h1>
+              <div className="flex-1">
+                <h1 className="text-xl font-bold text-foreground">
+                  {challenges.length > 1 ? `Desafio ${currentChallengeIndex + 1} de ${challenges.length}` : challenges[currentChallengeIndex]?.title}
+                </h1>
+                {challenges.length > 1 && (
+                  <p className="text-sm text-muted-foreground">{challenges[currentChallengeIndex]?.title}</p>
+                )}
+              </div>
+              {challenges.length > 1 && (
+                <div className="flex gap-1 mx-3">
+                  {challenges.map((_, index) => (
+                    <div
+                      key={index}
+                      className={`w-2 h-2 rounded-full cursor-pointer transition-colors ${
+                        index === currentChallengeIndex ? 'bg-primary' : 'bg-muted'
+                      }`}
+                      onClick={() => setCurrentChallengeIndex(index)}
+                    />
+                  ))}
+                </div>
+              )}
               <div className="h-10 w-10 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center">
                 <Trophy className="h-5 w-5 text-primary-foreground" />
               </div>
@@ -392,222 +418,251 @@ export default function Challenges() {
           </div>
         ) : (
           <div className="space-y-4">
-            {challenges.map((challenge) => {
-              const totalXP = getTotalXP(challenge);
-              const maxXP = getMaxXP(challenge);
-              const progress = maxXP > 0 ? (totalXP / maxXP) * 100 : 0;
-              const userPosition = getUserPosition(challenge.id);
-              const daysTotal = Math.ceil((new Date(challenge.end_date).getTime() - new Date(challenge.start_date).getTime()) / (1000 * 60 * 60 * 24));
-              const daysPassed = Math.ceil((new Date().getTime() - new Date(challenge.start_date).getTime()) / (1000 * 60 * 60 * 24));
-              const currentDay = Math.min(Math.max(1, daysPassed), daysTotal);
+            {challenges.length > 0 && (
+              (() => {
+                const challenge = challenges[currentChallengeIndex];
+                if (!challenge) return null;
+                
+                const totalXP = getTotalXP(challenge);
+                const maxXP = getMaxXP(challenge);
+                const progress = maxXP > 0 ? (totalXP / maxXP) * 100 : 0;
+                const userPosition = getUserPosition(challenge.id);
+                const daysTotal = Math.ceil((new Date(challenge.end_date).getTime() - new Date(challenge.start_date).getTime()) / (1000 * 60 * 60 * 24));
+                const daysPassed = Math.ceil((new Date().getTime() - new Date(challenge.start_date).getTime()) / (1000 * 60 * 60 * 24));
+                const currentDay = Math.min(Math.max(1, daysPassed), daysTotal);
 
-              return (
-                <div key={challenge.id} className="space-y-4">
-                  {/* Progress Card */}
-                  <Card className="bg-gradient-to-r from-orange-400 to-orange-500 text-white rounded-2xl overflow-hidden">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <h2 className="text-2xl font-bold mb-1">Dia {currentDay}</h2>
-                          <div className="flex items-center gap-2 mb-3">
-                            <div className="w-24 bg-white/20 rounded-full h-2">
-                              <div 
-                                className="bg-white h-2 rounded-full transition-all duration-500" 
-                                style={{ width: `${progress}%` }}
-                              />
+                return (
+                  <div className="space-y-4">
+                    {/* Challenge Info Card */}
+                    <Card className="bg-gradient-to-r from-primary to-accent text-white rounded-2xl overflow-hidden mb-4">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <h2 className="text-xl font-bold mb-1">{challenge.title}</h2>
+                            <div className="flex items-center gap-4 text-sm opacity-90">
+                              <div className="flex items-center gap-1">
+                                <Users className="h-4 w-4" />
+                                <span>{participantCounts[challenge.id] || 0} participantes</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-4 w-4" />
+                                <span>Termina em {formatDate(challenge.end_date)}</span>
+                              </div>
                             </div>
-                            <div className="w-4 h-4 bg-foreground rounded-full" />
                           </div>
-                          <p className="text-sm opacity-90">
-                            DESAFIO<br />
-                            <span className="font-bold">{Math.round(progress)}% CONCLUÍDO</span>
-                          </p>
+                          <div className="text-right">
+                            <div className="text-2xl font-bold">#{userPosition || '--'}</div>
+                            <div className="text-xs opacity-75">sua posição</div>
+                          </div>
                         </div>
-                        <Button 
-                          variant="secondary" 
-                          className="bg-white/20 hover:bg-white/30 text-white border-white/30 rounded-full px-6"
-                        >
-                          Ver Progresso
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
 
-                  {/* Ranking Section */}
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold">Ranking</h3>
-                    <h3 className="text-lg font-bold">O que estão falando</h3>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    {/* Ranking */}
-                    <div className="space-y-2">
-                      {rankings[challenge.id] && rankings[challenge.id].slice(0, 5).map((u, index) => (
-                        <div key={u.user_id} className="flex items-center gap-2">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                            index === 0 ? 'bg-yellow-500 text-white' :
-                            index === 1 ? 'bg-gray-400 text-white' :
-                            index === 2 ? 'bg-amber-600 text-white' :
-                            'bg-muted text-muted-foreground'
-                          }`}>
-                            {index === 0 ? '🏆' : index + 1}
+                    {/* Progress Card */}
+                    <Card className="bg-gradient-to-r from-orange-400 to-orange-500 text-white rounded-2xl overflow-hidden">
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <h2 className="text-2xl font-bold mb-1">Dia {currentDay}</h2>
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="w-24 bg-white/20 rounded-full h-2">
+                                <div 
+                                  className="bg-white h-2 rounded-full transition-all duration-500" 
+                                  style={{ width: `${progress}%` }}
+                                />
+                              </div>
+                              <div className="w-4 h-4 bg-foreground rounded-full" />
+                            </div>
+                            <p className="text-sm opacity-90">
+                              DESAFIO<br />
+                              <span className="font-bold">{Math.round(progress)}% CONCLUÍDO</span>
+                            </p>
                           </div>
-                          <div className="h-8 w-8 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center flex-shrink-0">
-                            <span className="text-primary-foreground font-bold text-xs">
-                              {u.display_name?.[0]?.toUpperCase() || 'U'}
-                            </span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{u.display_name}</p>
-                            {u.user_id === user.id && <p className="text-xs text-muted-foreground">Você</p>}
-                          </div>
-                          {index < 3 && <Medal className="h-4 w-4 text-muted-foreground" />}
+                          <Button 
+                            variant="secondary" 
+                            className="bg-white/20 hover:bg-white/30 text-white border-white/30 rounded-full px-4 py-2 text-sm"
+                          >
+                            Ver Progresso
+                          </Button>
                         </div>
-                      ))}
+                      </CardContent>
+                    </Card>
+
+                    {/* Ranking Section */}
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-bold">Ranking</h3>
+                      <h3 className="text-lg font-bold">O que estão falando</h3>
                     </div>
                     
-                    {/* Community Posts Preview */}
-                    <CommunityPreview challengeId={challenge.id} onViewCommunity={() => navigate(`/community?challenge=${challenge.id}`)} />
-                  </div>
-                  
-
-                  {/* Challenge Items */}
-                  <div className="bg-foreground rounded-t-3xl -mx-4 px-4 pt-6 pb-20">
-                    <h3 className="text-lg font-bold text-background mb-4">Tarefas</h3>
-                    <div className="space-y-3">
-                      {challenge.challenge_items
-                        ?.sort((a, b) => a.order_index - b.order_index)
-                        .map((item) => {
-                          const isCompleted = isTaskCompleted(item.id);
-                          
-                          return (
-                            <Card key={item.id} className={`bg-background border-0 rounded-2xl overflow-hidden ${
-                              isCompleted ? 'opacity-50' : ''
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      {/* Ranking */}
+                      <div className="space-y-2">
+                        {rankings[challenge.id] && rankings[challenge.id].slice(0, 5).map((u, index) => (
+                          <div key={u.user_id} className="flex items-center gap-2">
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                              index === 0 ? 'bg-yellow-500 text-white' :
+                              index === 1 ? 'bg-gray-400 text-white' :
+                              index === 2 ? 'bg-amber-600 text-white' :
+                              'bg-muted text-muted-foreground'
                             }`}>
-                              <CardContent className="p-4">
-                                <div className="flex items-center gap-4">
-                                  <div className="flex-shrink-0">
-                                    {isCompleted ? (
-                                      <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                                        <CheckCircle className="h-5 w-5 text-white" />
-                                      </div>
-                                    ) : (
-                                      <div className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center">
-                                        <Circle className="h-5 w-5 text-muted-foreground" />
-                                      </div>
-                                    )}
-                                  </div>
-                                   
-                                   <div className="flex-1">
-                                     <h4 className="font-medium text-foreground mb-1">{item.title}</h4>
-                                     <p className="text-sm text-muted-foreground">{item.description}</p>
+                              {index === 0 ? '🏆' : index + 1}
+                            </div>
+                            <div className="h-8 w-8 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center flex-shrink-0">
+                              <span className="text-primary-foreground font-bold text-xs">
+                                {u.display_name?.[0]?.toUpperCase() || 'U'}
+                              </span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{u.display_name}</p>
+                              {u.user_id === user.id && <p className="text-xs text-muted-foreground">Você</p>}
+                            </div>
+                            {index < 3 && <Medal className="h-4 w-4 text-muted-foreground" />}
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* Community Posts Preview */}
+                      <CommunityPreview challengeId={challenge.id} onViewCommunity={() => navigate(`/community?challenge=${challenge.id}`)} />
+                    </div>
+                    
+                    {/* Challenge Items */}
+                    <div className="bg-foreground rounded-t-3xl -mx-4 px-4 pt-6 pb-20">
+                      <h3 className="text-lg font-bold text-background mb-4">Tarefas</h3>
+                      <div className="space-y-3">
+                        {challenge.challenge_items
+                          ?.sort((a, b) => a.order_index - b.order_index)
+                          .map((item) => {
+                            const isCompleted = isTaskCompleted(item.id);
+                            
+                            return (
+                              <Card key={item.id} className={`bg-background border-0 rounded-2xl overflow-hidden ${
+                                isCompleted ? 'opacity-50' : ''
+                              }`}>
+                                <CardContent className="p-4">
+                                  <div className="flex items-center gap-4">
+                                    <div className="flex-shrink-0">
+                                      {isCompleted ? (
+                                        <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                                          <CheckCircle className="h-5 w-5 text-white" />
+                                        </div>
+                                      ) : (
+                                        <div className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center">
+                                          <Circle className="h-5 w-5 text-muted-foreground" />
+                                        </div>
+                                      )}
+                                    </div>
                                      
-                                     {!isCompleted && item.requires_photo && (
-                                       <div className="mt-3 space-y-2">
-                                         <Textarea
-                                           placeholder="Adicione suas observações (opcional)"
-                                           value={notes[item.id] || ''}
-                                           onChange={(e) => setNotes(prev => ({ ...prev, [item.id]: e.target.value }))}
-                                           rows={2}
-                                           className="text-xs"
-                                         />
-                                         
-                                         {imagePreview && (
-                                           <div className="w-full h-24 rounded-lg overflow-hidden">
-                                             <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                                           </div>
-                                         )}
-                                         
-                                         <input
-                                           type="file"
-                                           accept="image/*"
-                                           onChange={(e) => {
-                                             const file = e.target.files?.[0];
-                                             if (file) {
-                                               setSelectedImage(file);
-                                               const reader = new FileReader();
-                                               reader.onload = (e) => {
-                                                 setImagePreview(e.target?.result as string);
-                                               };
-                                               reader.readAsDataURL(file);
-                                             }
-                                           }}
-                                           className="hidden"
-                                           id={`photo-${item.id}`}
-                                         />
-                                         
-                                         <div className="flex gap-2">
-                                           <Button
-                                             variant="outline"
-                                             size="sm"
-                                             onClick={() => document.getElementById(`photo-${item.id}`)?.click()}
-                                             className="flex-1 text-xs"
-                                           >
-                                             <Camera className="h-3 w-3 mr-1" />
-                                             {imagePreview ? 'Trocar' : 'Foto'}
-                                           </Button>
+                                     <div className="flex-1">
+                                       <h4 className="font-medium text-foreground mb-1">{item.title}</h4>
+                                       <p className="text-sm text-muted-foreground">{item.description}</p>
+                                       
+                                       {!isCompleted && item.requires_photo && (
+                                         <div className="mt-3 space-y-2">
+                                           <Textarea
+                                             placeholder="Adicione suas observações (opcional)"
+                                             value={notes[item.id] || ''}
+                                             onChange={(e) => setNotes(prev => ({ ...prev, [item.id]: e.target.value }))}
+                                             rows={2}
+                                             className="text-xs"
+                                           />
                                            
+                                           {imagePreview && (
+                                             <div className="w-full h-24 rounded-lg overflow-hidden">
+                                               <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                                             </div>
+                                           )}
+                                           
+                                           <input
+                                             type="file"
+                                             accept="image/*"
+                                             onChange={(e) => {
+                                               const file = e.target.files?.[0];
+                                               if (file) {
+                                                 setSelectedImage(file);
+                                                 const reader = new FileReader();
+                                                 reader.onload = (e) => {
+                                                   setImagePreview(e.target?.result as string);
+                                                 };
+                                                 reader.readAsDataURL(file);
+                                               }
+                                             }}
+                                             className="hidden"
+                                             id={`photo-${item.id}`}
+                                           />
+                                           
+                                           <div className="flex gap-2">
+                                             <Button
+                                               variant="outline"
+                                               size="sm"
+                                               onClick={() => document.getElementById(`photo-${item.id}`)?.click()}
+                                               className="flex-1 text-xs"
+                                             >
+                                               <Camera className="h-3 w-3 mr-1" />
+                                               {imagePreview ? 'Trocar' : 'Foto'}
+                                             </Button>
+                                             
+                                             <Button
+                                               size="sm"
+                                               onClick={() => completeTask(challenge.id, item.id, item.requires_photo, item.xp_points)}
+                                               disabled={completingTasks.has(item.id) || !selectedImage}
+                                               className="text-xs"
+                                             >
+                                               {completingTasks.has(item.id) ? (
+                                                 <Loader2 className="h-3 w-3 animate-spin" />
+                                               ) : (
+                                                 'Concluir'
+                                               )}
+                                             </Button>
+                                           </div>
+                                         </div>
+                                       )}
+                                       
+                                       {!isCompleted && !item.requires_photo && (
+                                         <div className="mt-3 space-y-2">
+                                           <Textarea
+                                             placeholder="Adicione suas observações (opcional)"
+                                             value={notes[item.id] || ''}
+                                             onChange={(e) => setNotes(prev => ({ ...prev, [item.id]: e.target.value }))}
+                                             rows={2}
+                                             className="text-xs"
+                                           />
                                            <Button
                                              size="sm"
                                              onClick={() => completeTask(challenge.id, item.id, item.requires_photo, item.xp_points)}
-                                             disabled={completingTasks.has(item.id) || !selectedImage}
-                                             className="text-xs"
+                                             disabled={completingTasks.has(item.id)}
+                                             className="w-full text-xs"
                                            >
                                              {completingTasks.has(item.id) ? (
-                                               <Loader2 className="h-3 w-3 animate-spin" />
+                                               <Loader2 className="h-3 w-3 animate-spin mr-1" />
                                              ) : (
-                                               'Concluir'
+                                               <>
+                                                 <CheckCircle className="h-3 w-3 mr-1" />
+                                                 Concluir (+{item.xp_points} XP)
+                                               </>
                                              )}
                                            </Button>
                                          </div>
-                                       </div>
-                                     )}
-                                     
-                                     {!isCompleted && !item.requires_photo && (
-                                       <div className="mt-3 space-y-2">
-                                         <Textarea
-                                           placeholder="Adicione suas observações (opcional)"
-                                           value={notes[item.id] || ''}
-                                           onChange={(e) => setNotes(prev => ({ ...prev, [item.id]: e.target.value }))}
-                                           rows={2}
-                                           className="text-xs"
-                                         />
-                                         <Button
-                                           size="sm"
-                                           onClick={() => completeTask(challenge.id, item.id, item.requires_photo, item.xp_points)}
-                                           disabled={completingTasks.has(item.id)}
-                                           className="w-full text-xs"
-                                         >
-                                           {completingTasks.has(item.id) ? (
-                                             <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                                           ) : (
-                                             <>
-                                               <CheckCircle className="h-3 w-3 mr-1" />
-                                               Concluir (+{item.xp_points} XP)
-                                             </>
-                                           )}
-                                         </Button>
-                                       </div>
-                                     )}
-                                   </div>
-                                   
-                                   {isCompleted && (
-                                     <div className="flex-shrink-0">
-                                       <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center">
-                                         <CheckCircle className="h-4 w-4 text-white" />
-                                       </div>
+                                       )}
                                      </div>
-                                   )}
-                                </div>
-                              </CardContent>
-                            </Card>
-                          );
-                        })}
+                                     
+                                     {isCompleted && (
+                                       <div className="flex-shrink-0">
+                                         <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center">
+                                           <CheckCircle className="h-4 w-4 text-white" />
+                                         </div>
+                                       </div>
+                                     )}
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })()
+            )}
           </div>
         )}
       </div>
