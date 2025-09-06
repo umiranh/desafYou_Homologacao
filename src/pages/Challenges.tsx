@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Trophy, Clock, Users, Star, Camera, CheckCircle, Circle, Loader2, Medal } from 'lucide-react';
+import CommunityPreview from '@/components/CommunityPreview';
 
 interface ChallengeItem {
   id: string;
@@ -454,37 +455,9 @@ export default function Challenges() {
                     </div>
                     
                     {/* Community Posts Preview */}
-                    <div className="space-y-2">
-                      <Card className="bg-muted/30 border-0 p-3">
-                        <div className="flex items-start gap-2">
-                          <div className="h-6 w-6 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center flex-shrink-0">
-                            <span className="text-primary-foreground font-bold text-xs">P</span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1 mb-1">
-                              <span className="text-xs font-medium">Paulo Donato</span>
-                              <span className="text-xs text-muted-foreground">#5</span>
-                            </div>
-                            <p className="text-xs text-muted-foreground line-clamp-2">
-                              O shot de limão com certeza é a pior parte 🤢
-                            </p>
-                            <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                              <span>125</span>
-                              <span>33</span>
-                            </div>
-                          </div>
-                        </div>
-                      </Card>
-                    </div>
+                    <CommunityPreview challengeId={challenge.id} onViewCommunity={() => navigate(`/community?challenge=${challenge.id}`)} />
                   </div>
                   
-                  <Button 
-                    variant="outline" 
-                    className="w-full rounded-full bg-foreground text-background hover:bg-foreground/90 mb-6"
-                    onClick={() => navigate('/community')}
-                  >
-                    Ver comunidade
-                  </Button>
 
                   {/* Challenge Items */}
                   <div className="bg-foreground rounded-t-3xl -mx-4 px-4 pt-6 pb-20">

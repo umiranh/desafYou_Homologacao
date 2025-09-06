@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { sanitizeHtml } from '@/utils/inputSanitizer';
 import { logSecurityEvent, SECURITY_EVENTS } from '@/utils/securityAudit';
-import { Heart, MessageCircle, Camera, Send, Trophy, Loader2, Users } from 'lucide-react';
+import { Heart, MessageCircle, Camera, Send, Trophy, Loader2, Users, ArrowLeft } from 'lucide-react';
 
 interface Post {
   id: string;
@@ -42,6 +42,7 @@ interface Post {
 interface Challenge {
   id: string;
   title: string;
+  description: string;
 }
 
 export default function Community() {
@@ -52,12 +53,13 @@ export default function Community() {
   const [rateLimitState, setRateLimitState] = useState<{ [key: string]: number[] }>({});
   const [posts, setPosts] = useState<Post[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
-  const [selectedChallenge, setSelectedChallenge] = useState<string>('all');
+  const [selectedChallenge, setSelectedChallenge] = useState<string>('');
   const [newPost, setNewPost] = useState('');
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
   const [isPosting, setIsPosting] = useState(false);
   const [loadingPosts, setLoadingPosts] = useState(true);
+  const [currentChallengeInfo, setCurrentChallengeInfo] = useState<Challenge | null>(null);
 
   // Check if we should filter by specific challenge from URL
   useEffect(() => {
@@ -85,7 +87,8 @@ export default function Community() {
           .select(`
             challenges (
               id,
-              title
+              title,
+              description
             )
           `)
           .eq('user_id', user.id);
@@ -97,18 +100,31 @@ export default function Community() {
           .map(enrollment => enrollment.challenges);
 
         setChallenges(userChallenges);
+        
+        // Set first challenge as default if none selected or set current challenge info
+        if (userChallenges.length > 0) {
+          if (!selectedChallenge) {
+            setSelectedChallenge(userChallenges[0].id);
+            setCurrentChallengeInfo(userChallenges[0]);
+          } else {
+            const currentChallenge = userChallenges.find(c => c.id === selectedChallenge);
+            if (currentChallenge) {
+              setCurrentChallengeInfo(currentChallenge);
+            }
+          }
+        }
       } catch (error) {
         console.error('Error fetching challenges:', error);
       }
     };
 
     fetchChallenges();
-  }, [user]);
+  }, [user, selectedChallenge]);
 
-  // Fetch posts
+  // Fetch posts for the selected challenge
   useEffect(() => {
     const fetchPosts = async () => {
-      if (!user || challenges.length === 0) {
+      if (!user || !selectedChallenge) {
         setPosts([]);
         setLoadingPosts(false);
         return;
@@ -116,9 +132,6 @@ export default function Community() {
 
       try {
         setLoadingPosts(true);
-        
-        // Get user's enrolled challenge IDs
-        const userChallengeIds = challenges.map(c => c.id);
         
         let query = supabase
           .from('community_posts')
@@ -137,12 +150,8 @@ export default function Community() {
               created_at
             )
           `)
-          .in('challenge_id', userChallengeIds)
+          .eq('challenge_id', selectedChallenge)
           .order('created_at', { ascending: false });
-
-        if (selectedChallenge !== 'all') {
-          query = query.eq('challenge_id', selectedChallenge);
-        }
 
         const { data, error } = await query;
 
@@ -199,7 +208,7 @@ export default function Community() {
     };
 
     fetchPosts();
-  }, [selectedChallenge, toast, user, challenges]);
+  }, [selectedChallenge, toast, user]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -260,7 +269,7 @@ export default function Community() {
 
   const createPost = async () => {
     if (!user || !newPost.trim()) return;
-    if (selectedChallenge === 'all' || challenges.length === 0) {
+    if (!selectedChallenge || challenges.length === 0) {
       toast({
         title: "Selecione um desafio",
         description: "Você precisa estar inscrito e selecionar um desafio para postar",
@@ -450,223 +459,227 @@ export default function Community() {
 
   if (!user) return null;
 
+  if (challenges.length === 0) {
+    return (
+      <div className="min-h-screen pb-20 bg-gradient-to-br from-secondary/10 via-background to-secondary/5">
+        <div className="text-center py-20">
+          <div className="bg-background/90 rounded-3xl p-12 border border-primary/20 max-w-md mx-auto">
+            <div className="text-8xl mb-6">🏆</div>
+            <h3 className="text-2xl font-bold text-primary mb-4">Participe de um desafio</h3>
+            <p className="text-muted-foreground mb-6 text-lg">
+              Você precisa estar inscrito em um desafio para acessar sua comunidade.
+            </p>
+            <Button
+              className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white px-8 py-3 rounded-full text-lg font-semibold shadow-lg"
+              onClick={() => navigate('/dashboard')}
+            >
+              🚀 Explorar Desafios
+            </Button>
+          </div>
+        </div>
+        <BottomNav currentPage="community" onNavigate={(page) => navigate(`/${page}`)} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen pb-20 bg-gradient-to-br from-secondary/10 via-background to-secondary/5">
       <header className="bg-background/95 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 max-w-md">
-          {/* Header with title and avatar */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <Users className="h-6 w-6 text-foreground" />
-              <h1 className="text-xl font-bold text-foreground">Comunidade</h1>
-            </div>
-            <div className="h-10 w-10 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center">
-              <Trophy className="h-5 w-5 text-primary-foreground" />
+        <div className="container mx-auto px-4 py-2 max-w-md">
+          {/* Compact Header */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/challenges')}
+                className="p-1"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <div>
+                <h1 className="text-lg font-bold text-foreground">
+                  {currentChallengeInfo ? currentChallengeInfo.title : 'Comunidade'}
+                </h1>
+                {currentChallengeInfo && (
+                  <p className="text-xs text-muted-foreground">Comunidade do desafio</p>
+                )}
+              </div>
             </div>
           </div>
           
-          {/* Tab Navigation */}
-          <div className="flex gap-1 mb-4 bg-muted rounded-full p-1">
-            <Button 
-              variant="ghost"
-              size="sm"
-              className="rounded-full flex-1 text-sm py-2 bg-foreground text-background hover:bg-foreground/90"
-            >
-              Meu feed
-            </Button>
-            <Button 
-              variant="ghost"
-              size="sm"
-              className="rounded-full flex-1 text-sm py-2 text-muted-foreground hover:bg-muted"
-            >
-              Minhas comunidades
-            </Button>
-            <Button 
-              variant="ghost"
-              size="sm"
-              className="rounded-full flex-1 text-sm py-2 text-muted-foreground hover:bg-muted"
-            >
-              Todas
-            </Button>
-          </div>
+          {/* Challenge Selector */}
+          {challenges.length > 1 && (
+            <div className="flex gap-1 mb-3 bg-muted rounded-full p-1 overflow-x-auto">
+              {challenges.map((challenge) => (
+                <Button 
+                  key={challenge.id}
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedChallenge(challenge.id)}
+                  className={`rounded-full flex-shrink-0 text-xs py-1 px-3 ${
+                    selectedChallenge === challenge.id 
+                      ? 'bg-foreground text-background hover:bg-foreground/90' 
+                      : 'text-muted-foreground hover:bg-muted'
+                  }`}
+                >
+                  {challenge.title}
+                </Button>
+              ))}
+            </div>
+          )}
 
           {/* New post form */}
-          <Card className="bg-background border-0 shadow-sm rounded-2xl mb-4">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="h-10 w-10 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center flex-shrink-0">
-                  <Trophy className="h-5 w-5 text-primary-foreground" />
-                </div>
-                <div className="flex-1">
-                  <input
-                    type="text"
-                    placeholder="o que tem a dizer?"
-                    value={newPost}
-                    onChange={(e) => setNewPost(e.target.value)}
-                    className="w-full bg-transparent border-0 outline-none text-sm text-muted-foreground placeholder:text-muted-foreground"
-                  />
-                </div>
-                <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center">
-                  <Camera className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </div>
-              
-              {imagePreview && (
-                <div className="relative mb-3">
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="max-h-48 rounded-lg object-cover w-full"
-                  />
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="absolute top-2 right-2"
-                    onClick={() => {
-                      setSelectedImage(null);
-                      setImagePreview('');
-                    }}
-                  >
-                    ✕
-                  </Button>
-                </div>
-              )}
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageSelect}
-                    className="hidden"
-                    id="image-upload"
-                  />
-                  <label htmlFor="image-upload">
-                    <Button variant="ghost" size="sm" asChild className="text-muted-foreground text-xs px-3">
-                      <span className="cursor-pointer flex items-center gap-1">
-                        <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center">
-                          <Users className="h-3 w-3" />
-                        </div>
-                        Público
-                      </span>
-                    </Button>
-                  </label>
+          {selectedChallenge && (
+            <Card className="bg-background border-0 shadow-sm rounded-xl mb-3">
+              <CardContent className="p-3">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="h-8 w-8 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center flex-shrink-0">
+                    <Trophy className="h-4 w-4 text-primary-foreground" />
+                  </div>
+                  <div className="flex-1">
+                    <textarea
+                      value={newPost}
+                      onChange={(e) => setNewPost(e.target.value)}
+                      placeholder="Compartilhe sua evolução..."
+                      className="w-full p-2 rounded-lg bg-muted border-0 resize-none placeholder:text-muted-foreground text-sm"
+                      rows={2}
+                    />
+                  </div>
                 </div>
                 
-                <Button
-                  onClick={createPost}
-                  disabled={!newPost.trim() || isPosting || selectedChallenge === 'all' || challenges.length === 0}
-                  className="rounded-full bg-foreground text-background hover:bg-foreground/90 px-6 py-1 h-8 text-sm font-medium"
-                >
-                  {isPosting ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    "Publicar"
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+                {imagePreview && (
+                  <div className="mb-3 relative">
+                    <img src={imagePreview} alt="Preview" className="w-full h-24 object-cover rounded-lg" />
+                    <Button
+                      onClick={() => {
+                        setSelectedImage(null);
+                        setImagePreview('');
+                      }}
+                      className="absolute top-1 right-1 h-6 w-6 p-0 rounded-full bg-background/80 hover:bg-background text-foreground"
+                    >
+                      ×
+                    </Button>
+                  </div>
+                )}
+                
+                <div className="flex items-center justify-between">
+                  <label htmlFor="photo-upload" className="cursor-pointer">
+                    <input
+                      id="photo-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageSelect}
+                      className="hidden"
+                    />
+                    <Camera className="h-5 w-5 text-muted-foreground hover:text-foreground" />
+                  </label>
+                  <Button
+                    onClick={createPost}
+                    disabled={isPosting || (!newPost.trim() && !selectedImage) || !selectedChallenge}
+                    className="bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white px-4 py-2 rounded-full text-sm font-medium"
+                  >
+                    {isPosting ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <>
+                        <Send className="h-3 w-3 mr-1" />
+                        Postar
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </header>
 
       <div className="container mx-auto px-4 py-4 space-y-4 max-w-md">
+        {/* Posts */}
         {loadingPosts ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
-              <p className="text-muted-foreground">Carregando posts da comunidade...</p>
-            </div>
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin" />
+          </div>
+        ) : posts.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">💬</div>
+            <h3 className="text-lg font-semibold text-foreground mb-2">Nenhum post ainda</h3>
+            <p className="text-muted-foreground mb-4">
+              Seja o primeiro a compartilhar sua evolução neste desafio!
+            </p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {posts.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground text-sm">
-                  {challenges.length === 0 
-                    ? "Inscreva-se em um desafio para ver posts da comunidade"
-                    : "Ainda não há posts neste feed"}
-                </p>
-              </div>
-            ) : (
-              posts.map((post) => {
-                const isLiked = post.post_likes.some(like => like.user_id === user.id);
-                
-                return (
-                  <Card key={post.id} className="bg-background border-0 shadow-sm rounded-2xl overflow-hidden mb-4">
-                    <CardContent className="p-0">
-                      {/* Challenge Tag */}
-                      <div className="px-4 pt-4 pb-2">
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>Postado em {post.challenges.title}</span>
-                          <button className="text-muted-foreground hover:text-primary">
-                            Ver comunidade
-                          </button>
+          posts.map((post) => {
+            const isLiked = post.post_likes.some(like => like.user_id === user.id);
+            const likesCount = post.post_likes.length;
+            
+            return (
+              <Card key={post.id} className="bg-background border-0 shadow-sm rounded-xl overflow-hidden">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="h-10 w-10 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="text-primary-foreground font-bold text-sm">
+                        {post.profiles.display_name?.[0]?.toUpperCase() || 'U'}
+                      </span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-sm text-foreground">
+                          {post.profiles.display_name}
+                        </span>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Trophy className="h-3 w-3" />
+                          <span>Nv. {post.profiles.level}</span>
                         </div>
                       </div>
-                      
-                      {/* Post Content */}
-                      <div className="px-4 pb-4">
-                        <div className="flex items-start gap-3 mb-3">
-                          <div className="h-10 w-10 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center flex-shrink-0">
-                            <span className="text-primary-foreground font-bold">
-                              {post.profiles.display_name?.[0]?.toUpperCase() || 'U'}
-                            </span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="font-medium text-foreground text-sm">{post.profiles.display_name || 'Usuário'}</h3>
-                              <span className="text-xs text-muted-foreground">#{post.profiles.level || 1}</span>
-                            </div>
-                            <p className="text-xs text-muted-foreground">Sorocaba/SP</p>
-                          </div>
-                        </div>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDate(post.created_at)}
+                      </p>
+                    </div>
+                  </div>
 
-                        <p className="text-foreground text-sm mb-3 leading-relaxed">{post.content}</p>
+                  <p className="text-sm text-foreground mb-3">{post.content}</p>
 
-                        {post.image_url && (
-                          <div className="mb-3">
-                            <img
-                              src={post.image_url}
-                              alt="Post image"
-                              className="w-full rounded-lg object-cover max-h-64"
-                            />
-                          </div>
-                        )}
+                  {post.image_url && (
+                    <div className="mb-3 rounded-xl overflow-hidden">
+                      <img
+                        src={post.image_url}
+                        alt="Post"
+                        className="w-full h-48 object-cover"
+                      />
+                    </div>
+                  )}
 
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <button
-                              onClick={() => toggleLike(post.id)}
-                              className={`flex items-center gap-1 text-xs transition-colors ${
-                                isLiked ? 'text-red-500' : 'text-muted-foreground hover:text-red-500'
-                              }`}
-                            >
-                              <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
-                              <span>{post.post_likes.length}</span>
-                            </button>
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <MessageCircle className="h-4 w-4" />
-                              <span>{post.post_comments.length}</span>
-                            </div>
-                          </div>
-                          <button className="text-muted-foreground hover:text-primary">
-                            <div className="h-4 w-4 rotate-90">
-                              <Send className="h-4 w-4" />
-                            </div>
-                          </button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })
-            )}
-          </div>
+                  <div className="flex items-center gap-4 pt-2 border-t border-muted">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleLike(post.id)}
+                      className={`flex items-center gap-1 h-8 px-2 rounded-full ${
+                        isLiked ? 'text-red-500' : 'text-muted-foreground'
+                      }`}
+                    >
+                      <Heart className={`h-4 w-4 ${isLiked ? 'fill-current' : ''}`} />
+                      <span className="text-xs">{likesCount}</span>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="flex items-center gap-1 h-8 px-2 rounded-full text-muted-foreground"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      <span className="text-xs">{post.post_comments.length}</span>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })
         )}
       </div>
 
-      <BottomNav currentPage="community" onNavigate={(path) => navigate(path)} />
+      <BottomNav currentPage="community" onNavigate={(page) => navigate(`/${page}`)} />
     </div>
   );
 }

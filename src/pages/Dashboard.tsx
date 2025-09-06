@@ -25,6 +25,7 @@ interface Challenge {
   is_active: boolean;
   created_by: string;
   created_at: string;
+  difficulty_level?: string;
   participants_count?: number;
   user_enrolled?: boolean;
 }
@@ -186,16 +187,11 @@ export default function Dashboard() {
     const matchesSearch = challenge.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          challenge.description.toLowerCase().includes(searchQuery.toLowerCase());
     
-    // Check if challenge matches difficulty level
-    const challengeLevel = challenge.description.toLowerCase();
+    // Check if challenge matches difficulty level using the difficulty_level field
     const matchesLevel = selectedLevel === 'all' || 
-                        (selectedLevel === 'iniciante' && challengeLevel.includes('iniciante')) ||
-                        (selectedLevel === 'intermediário' && challengeLevel.includes('intermediário')) ||
-                        (selectedLevel === 'avançado' && challengeLevel.includes('avançado'));
+                        (challenge as any).difficulty_level === selectedLevel;
     
-    const matchesEnrolled = selectedLevel !== 'enrolled' || challenge.user_enrolled;
-    
-    return matchesSearch && matchesLevel && matchesEnrolled;
+    return matchesSearch && matchesLevel;
   });
 
   const formatDate = (dateString: string) => {
