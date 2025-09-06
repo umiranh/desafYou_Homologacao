@@ -69,6 +69,11 @@ export default function Profile() {
 
         if (error && error.code !== 'PGRST116') {
           console.error('Error fetching profile:', error);
+          toast({
+            title: "Erro ao carregar perfil",
+            description: "Não foi possível carregar as informações do perfil",
+            variant: "destructive",
+          });
           return;
         }
 

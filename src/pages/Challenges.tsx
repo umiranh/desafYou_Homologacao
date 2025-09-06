@@ -98,23 +98,32 @@ export default function Challenges() {
         // Fetch user progress for each challenge
         const challengesWithProgress = await Promise.all(
           userChallenges.map(async (challenge) => {
-            const { data: progressData } = await supabase
-              .from('user_progress')
-              .select('*')
-              .eq('user_id', user.id)
-              .in('challenge_item_id', challenge.challenge_items?.map(item => item.id) || []);
+            try {
+              const { data: progressData } = await supabase
+                .from('user_progress')
+                .select('*')
+                .eq('user_id', user.id)
+                .in('challenge_item_id', challenge.challenge_items?.map(item => item.id) || []);
 
-            // Fetch challenge rewards
-            const { data: rewardsData } = await supabase
-              .from('challenge_rewards')
-              .select('*')
-              .eq('challenge_id', challenge.id);
+              // Fetch challenge rewards
+              const { data: rewardsData } = await supabase
+                .from('challenge_rewards')
+                .select('*')
+                .eq('challenge_id', challenge.id);
 
-            return {
-              ...challenge,
-              user_progress: progressData || [],
-              challenge_rewards: rewardsData || []
-            };
+              return {
+                ...challenge,
+                user_progress: progressData || [],
+                challenge_rewards: rewardsData || []
+              };
+            } catch (error) {
+              console.error('Error fetching challenge data:', error);
+              return {
+                ...challenge,
+                user_progress: [],
+                challenge_rewards: []
+              };
+            }
           })
         );
 
@@ -124,45 +133,59 @@ export default function Challenges() {
         const challengeRankings: { [challengeId: string]: Ranking[] } = {};
         
         for (const challenge of challengesWithProgress) {
-          const { data: enrollmentsData } = await supabase
-            .from('challenge_enrollments')
-            .select('user_id')
-            .eq('challenge_id', challenge.id);
+          try {
+            const { data: enrollmentsData } = await supabase
+              .from('challenge_enrollments')
+              .select('user_id')
+              .eq('challenge_id', challenge.id);
 
-          if (enrollmentsData) {
-            const userXPs = await Promise.all(
-              enrollmentsData.map(async (enrollment) => {
-                const { data: profileData } = await supabase
-                  .from('profiles')
-                  .select('display_name')
-                  .eq('user_id', enrollment.user_id)
-                  .single();
+            if (enrollmentsData && enrollmentsData.length > 0) {
+              const userXPs = await Promise.all(
+                enrollmentsData.map(async (enrollment) => {
+                  try {
+                    const { data: profileData } = await supabase
+                      .from('profiles')
+                      .select('display_name')
+                      .eq('user_id', enrollment.user_id)
+                      .single();
 
-                const { data: progressData } = await supabase
-                  .from('user_progress')
-                  .select('xp_earned')
-                  .eq('user_id', enrollment.user_id)
-                  .in('challenge_item_id', challenge.challenge_items?.map(item => item.id) || []);
+                    const { data: progressData } = await supabase
+                      .from('user_progress')
+                      .select('xp_earned')
+                      .eq('user_id', enrollment.user_id)
+                      .in('challenge_item_id', challenge.challenge_items?.map(item => item.id) || []);
 
-                const totalXP = progressData?.reduce((sum, progress) => sum + (progress.xp_earned || 0), 0) || 0;
+                    const totalXP = progressData?.reduce((sum, progress) => sum + (progress.xp_earned || 0), 0) || 0;
 
-                return {
-                  user_id: enrollment.user_id,
-                  display_name: profileData?.display_name || 'Usuário',
-                  total_xp: totalXP
-                };
-              })
-            );
+                    return {
+                      user_id: enrollment.user_id,
+                      display_name: profileData?.display_name || 'Usuário',
+                      total_xp: totalXP
+                    };
+                  } catch (error) {
+                    console.error('Error fetching user ranking data:', error);
+                    return {
+                      user_id: enrollment.user_id,
+                      display_name: 'Usuário',
+                      total_xp: 0
+                    };
+                  }
+                })
+              );
 
-            // Sort by XP and assign positions
-            const sortedUsers = userXPs.sort((a, b) => b.total_xp - a.total_xp);
-            challengeRankings[challenge.id] = sortedUsers.map((user, index) => ({
-              id: `${user.user_id}-${challenge.id}`,
-              user_id: user.user_id,
-              display_name: user.display_name,
-              total_xp: user.total_xp,
-              position: index + 1
-            }));
+              // Sort by XP and assign positions
+              const sortedUsers = userXPs.sort((a, b) => b.total_xp - a.total_xp);
+              challengeRankings[challenge.id] = sortedUsers.map((user, index) => ({
+                id: `${user.user_id}-${challenge.id}`,
+                user_id: user.user_id,
+                display_name: user.display_name,
+                total_xp: user.total_xp,
+                position: index + 1
+              }));
+            }
+          } catch (error) {
+            console.error('Error fetching rankings for challenge:', challenge.id, error);
+            challengeRankings[challenge.id] = [];
           }
         }
 
