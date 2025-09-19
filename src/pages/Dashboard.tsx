@@ -48,6 +48,7 @@ export default function Dashboard() {
   const [loadingChallenges, setLoadingChallenges] = useState(true);
   const [enrollingChallenges, setEnrollingChallenges] = useState<Set<string>>(new Set());
   const [selectedChallenge, setSelectedChallenge] = useState<Challenge | null>(null);
+  const [now, setNow] = useState<Date>(new Date());
 
   // Redirect if not logged in
   useEffect(() => {
@@ -117,7 +118,13 @@ export default function Dashboard() {
           };
         });
 
-        setChallenges(processedChallenges);
+        // Only show challenges within time window (start_date <= now <= end_date)
+        const visible = processedChallenges.filter(ch => {
+          const start = new Date(ch.start_date);
+          const end = new Date(ch.end_date);
+          return now.getTime() >= start.getTime() && now.getTime() <= end.getTime();
+        });
+        setChallenges(visible);
       } catch (error: any) {
         console.error('Error fetching challenges:', error);
         toast({
@@ -134,6 +141,12 @@ export default function Dashboard() {
       fetchChallenges();
     }
   }, [user, toast]);
+
+  // Update time every 30s to refresh visible challenges
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(t);
+  }, []);
 
   const enrollInChallenge = async (challengeId: string) => {
     if (!user) return;

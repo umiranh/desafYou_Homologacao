@@ -177,7 +177,14 @@ export function ChallengeDetailModal({ challenge, onClose, onEnroll, isEnrolling
                   variant="ghost"
                   size="sm"
                   className="bg-foreground text-background hover:bg-foreground/90 rounded-full px-4"
-                  onClick={() => window.location.href = `/community?challenge=${challenge.id}`}
+                  onClick={() => {
+                    // Only navigate if user is enrolled; otherwise prevent route errors
+                    if (challenge.user_enrolled) {
+                      window.location.href = `/community?challenge=${challenge.id}`;
+                    } else {
+                      alert('Você precisa se inscrever no desafio para acessar a comunidade.');
+                    }
+                  }}
                 >
                   Ver comunidade
                 </Button>

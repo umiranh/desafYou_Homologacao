@@ -66,6 +66,7 @@ export default function Challenges() {
   const [notes, setNotes] = useState<{ [taskId: string]: string }>({});
   const [loadingChallenges, setLoadingChallenges] = useState(true);
   const [currentChallengeIndex, setCurrentChallengeIndex] = useState(0);
+  const [now, setNow] = useState<Date>(new Date());
 
   useEffect(() => {
     if (!loading && !user) {
@@ -212,6 +213,12 @@ export default function Challenges() {
     fetchChallenges();
   }, [user, toast]);
 
+  // Tick clock to re-evaluate time-based availability
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 30000); // 30s
+    return () => clearInterval(timer);
+  }, []);
+
 
   const uploadImage = async (file: File): Promise<string> => {
     if (!user) throw new Error('User not authenticated');
@@ -252,7 +259,6 @@ export default function Challenges() {
     const task = parentChallenge?.challenge_items.find(i => i.id === taskId);
 
     const isWithinWindow = (challenge: Challenge) => {
-      const now = new Date();
       const start = new Date(challenge.start_date);
       const end = new Date(challenge.end_date);
       return now.getTime() >= start.getTime() && now.getTime() <= end.getTime();
@@ -260,7 +266,6 @@ export default function Challenges() {
 
     const getCurrentDayNumber = (challenge: Challenge) => {
       const start = new Date(challenge.start_date);
-      const now = new Date();
       const diffMs = now.getTime() - start.getTime();
       const day = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
       const totalDays = Math.ceil((new Date(challenge.end_date).getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
@@ -279,7 +284,7 @@ export default function Challenges() {
       // Check unlock_time (HH:mm)
       if (item.unlock_time) {
         const [hh, mm] = item.unlock_time.split(":");
-        const threshold = new Date();
+        const threshold = new Date(now);
         threshold.setHours(parseInt(hh || '0'), parseInt(mm || '0'), 0, 0);
         if (new Date().getTime() < threshold.getTime()) return false;
       }
@@ -381,7 +386,6 @@ export default function Challenges() {
   };
 
   const isTaskAvailable = (item: ChallengeItem, challenge: Challenge) => {
-    const now = new Date();
     const start = new Date(challenge.start_date);
     const end = new Date(challenge.end_date);
     if (now.getTime() < start.getTime() || now.getTime() > end.getTime()) return false;
@@ -396,7 +400,7 @@ export default function Challenges() {
 
     if (item.unlock_time) {
       const [hh, mm] = item.unlock_time.split(":");
-      const threshold = new Date();
+      const threshold = new Date(now);
       threshold.setHours(parseInt(hh || '0'), parseInt(mm || '0'), 0, 0);
       if (now.getTime() < threshold.getTime()) return false;
     }
