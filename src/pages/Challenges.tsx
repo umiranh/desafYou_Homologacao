@@ -247,6 +247,54 @@ export default function Challenges() {
       return;
     }
 
+    // Validate schedule before allowing completion
+    const parentChallenge = challenges.find(c => c.id === challengeId);
+    const task = parentChallenge?.challenge_items.find(i => i.id === taskId);
+
+    const isWithinWindow = (challenge: Challenge) => {
+      const now = new Date();
+      const start = new Date(challenge.start_date);
+      const end = new Date(challenge.end_date);
+      return now.getTime() >= start.getTime() && now.getTime() <= end.getTime();
+    };
+
+    const getCurrentDayNumber = (challenge: Challenge) => {
+      const start = new Date(challenge.start_date);
+      const now = new Date();
+      const diffMs = now.getTime() - start.getTime();
+      const day = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+      const totalDays = Math.ceil((new Date(challenge.end_date).getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+      if (day < 1) return 1;
+      if (day > totalDays) return totalDays;
+      return day;
+    };
+
+    const hasUnlockedToday = (item: ChallengeItem, challenge: Challenge) => {
+      if (!item) return false;
+      // If unlock_days empty or undefined, treat as available every day
+      const currentDay = getCurrentDayNumber(challenge);
+      if (Array.isArray(item.unlock_days) && item.unlock_days.length > 0) {
+        if (!item.unlock_days.includes(currentDay)) return false;
+      }
+      // Check unlock_time (HH:mm)
+      if (item.unlock_time) {
+        const [hh, mm] = item.unlock_time.split(":");
+        const threshold = new Date();
+        threshold.setHours(parseInt(hh || '0'), parseInt(mm || '0'), 0, 0);
+        if (new Date().getTime() < threshold.getTime()) return false;
+      }
+      return true;
+    };
+
+    if (!parentChallenge || !task || !isWithinWindow(parentChallenge) || !hasUnlockedToday(task, parentChallenge)) {
+      toast({
+        title: "Tarefa indisponível",
+        description: "Esta tarefa ainda não está liberada para agora.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setCompletingTasks(prev => new Set([...prev, taskId]));
 
     try {
@@ -330,6 +378,30 @@ export default function Challenges() {
     return challenges.some(challenge => 
       challenge.user_progress.some(progress => progress.challenge_item_id === taskId)
     );
+  };
+
+  const isTaskAvailable = (item: ChallengeItem, challenge: Challenge) => {
+    const now = new Date();
+    const start = new Date(challenge.start_date);
+    const end = new Date(challenge.end_date);
+    if (now.getTime() < start.getTime() || now.getTime() > end.getTime()) return false;
+
+    const daysTotal = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    const daysPassed = Math.ceil((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    const currentDay = Math.min(Math.max(1, daysPassed), daysTotal);
+
+    if (Array.isArray(item.unlock_days) && item.unlock_days.length > 0 && !item.unlock_days.includes(currentDay)) {
+      return false;
+    }
+
+    if (item.unlock_time) {
+      const [hh, mm] = item.unlock_time.split(":");
+      const threshold = new Date();
+      threshold.setHours(parseInt(hh || '0'), parseInt(mm || '0'), 0, 0);
+      if (now.getTime() < threshold.getTime()) return false;
+    }
+
+    return true;
   };
 
   const getTotalXP = (challenge: Challenge) => {
@@ -533,6 +605,7 @@ export default function Challenges() {
                           ?.sort((a, b) => a.order_index - b.order_index)
                           .map((item) => {
                             const isCompleted = isTaskCompleted(item.id);
+                            const available = isTaskAvailable(item, challenge);
                             
                             return (
                               <Card key={item.id} className={`bg-background border-0 rounded-2xl overflow-hidden ${
@@ -555,6 +628,9 @@ export default function Challenges() {
                                      <div className="flex-1">
                                        <h4 className="font-medium text-foreground mb-1">{item.title}</h4>
                                        <p className="text-sm text-muted-foreground">{item.description}</p>
+                                       {!isCompleted && !available && (
+                                         <p className="text-xs text-red-500 mt-2">Tarefa indisponível no momento</p>
+                                       )}
                                        
                                        {!isCompleted && item.requires_photo && (
                                          <div className="mt-3 space-y-2">
@@ -604,7 +680,7 @@ export default function Challenges() {
                                              <Button
                                                size="sm"
                                                onClick={() => completeTask(challenge.id, item.id, item.requires_photo, item.xp_points)}
-                                               disabled={completingTasks.has(item.id) || !selectedImage}
+                                               disabled={completingTasks.has(item.id) || !selectedImage || !available}
                                                className="text-xs"
                                              >
                                                {completingTasks.has(item.id) ? (
@@ -629,7 +705,7 @@ export default function Challenges() {
                                            <Button
                                              size="sm"
                                              onClick={() => completeTask(challenge.id, item.id, item.requires_photo, item.xp_points)}
-                                             disabled={completingTasks.has(item.id)}
+                                             disabled={completingTasks.has(item.id) || !available}
                                              className="w-full text-xs"
                                            >
                                              {completingTasks.has(item.id) ? (

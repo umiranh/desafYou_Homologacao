@@ -32,7 +32,15 @@ interface ChallengeDetailModalProps {
 
 export function ChallengeDetailModal({ challenge, onClose, onEnroll, isEnrolling }: ChallengeDetailModalProps) {
   const defaultImages = [fitnessChallenge1, fitnessChallenge2, fitnessChallenge3];
-  const imageIndex = parseInt(challenge.id) % defaultImages.length;
+  // Safely compute an image index even if the ID is a UUID
+  const imageIndex = (() => {
+    const id = String(challenge.id || "");
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+      hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+    }
+    return hash % defaultImages.length;
+  })();
   
   const getDuration = () => {
     const start = new Date(challenge.start_date);
