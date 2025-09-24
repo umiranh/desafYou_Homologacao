@@ -49,6 +49,7 @@ interface Ranking {
   id?: string;
   user_id: string;
   display_name: string;
+  avatar_url?: string;
   total_xp: number;
   position: number;
 }
@@ -96,7 +97,13 @@ export default function Challenges() {
 
         const userChallenges = data
           .filter(enrollment => enrollment.challenges)
-          .map(enrollment => enrollment.challenges);
+          .map(enrollment => enrollment.challenges)
+          .filter(challenge => {
+            // Only show active challenges (not ended)
+            const now = new Date();
+            const endDate = new Date(challenge.end_date);
+            return now.getTime() <= endDate.getTime();
+          });
 
         // Fetch user progress for each challenge
         const challengesWithProgress = await Promise.all(
@@ -146,38 +153,39 @@ export default function Challenges() {
             participantCounts[challenge.id] = enrollmentsData?.length || 0;
 
             if (enrollmentsData && enrollmentsData.length > 0) {
-              const userXPs = await Promise.all(
-                enrollmentsData.map(async (enrollment) => {
-                  try {
-                    const { data: profileData } = await supabase
-                      .from('profiles')
-                      .select('display_name')
-                      .eq('user_id', enrollment.user_id)
-                      .single();
+              // Get all user profiles at once
+              const userIds = enrollmentsData.map(e => e.user_id);
+              const { data: profilesData } = await supabase
+                .from('profiles')
+                .select('user_id, display_name, avatar_url')
+                .in('user_id', userIds);
 
-                    const { data: progressData } = await supabase
-                      .from('user_progress')
-                      .select('xp_earned')
-                      .eq('user_id', enrollment.user_id)
-                      .in('challenge_item_id', challenge.challenge_items?.map(item => item.id) || []);
+              const profilesMap = new Map(profilesData?.map(profile => [profile.user_id, profile]) || []);
 
-                    const totalXP = progressData?.reduce((sum, progress) => sum + (progress.xp_earned || 0), 0) || 0;
+              // Get all progress data at once
+              const { data: allProgressData } = await supabase
+                .from('user_progress')
+                .select('user_id, xp_earned')
+                .in('user_id', userIds)
+                .in('challenge_item_id', challenge.challenge_items?.map(item => item.id) || []);
 
-                    return {
-                      user_id: enrollment.user_id,
-                      display_name: profileData?.display_name || 'Usuário',
-                      total_xp: totalXP
-                    };
-                  } catch (error) {
-                    console.error('Error fetching user ranking data:', error);
-                    return {
-                      user_id: enrollment.user_id,
-                      display_name: 'Usuário',
-                      total_xp: 0
-                    };
-                  }
-                })
-              );
+              // Calculate XP for each user
+              const userXPMap = new Map<string, number>();
+              allProgressData?.forEach(progress => {
+                const currentXP = userXPMap.get(progress.user_id) || 0;
+                userXPMap.set(progress.user_id, currentXP + (progress.xp_earned || 0));
+              });
+
+              // Create ranking data
+              const userXPs = enrollmentsData.map(enrollment => {
+                const profile = profilesMap.get(enrollment.user_id) as any;
+                return {
+                  user_id: enrollment.user_id,
+                  display_name: profile?.display_name || 'Usuário',
+                  avatar_url: profile?.avatar_url,
+                  total_xp: userXPMap.get(enrollment.user_id) || 0
+                };
+              });
 
               // Sort by XP and assign positions
               const sortedUsers = userXPs.sort((a, b) => b.total_xp - a.total_xp);
@@ -185,6 +193,7 @@ export default function Challenges() {
                 id: `${user.user_id}-${challenge.id}`,
                 user_id: user.user_id,
                 display_name: user.display_name,
+                avatar_url: user.avatar_url,
                 total_xp: user.total_xp,
                 position: index + 1
               }));
@@ -197,6 +206,11 @@ export default function Challenges() {
 
         setRankings(challengeRankings);
         setParticipantCounts(participantCounts);
+
+        // Check and distribute rewards for ended challenges
+        for (const challenge of challengesWithProgress) {
+          await checkAndDistributeRewards(challenge);
+        }
 
       } catch (error: any) {
         console.error('Error fetching challenges:', error);
@@ -243,6 +257,16 @@ export default function Challenges() {
     return data.publicUrl;
   };
 
+  const getCurrentDayNumber = (challenge: Challenge) => {
+    const start = new Date(challenge.start_date);
+    const diffMs = now.getTime() - start.getTime();
+    const day = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1; // +1 because day 1 is the first day
+    const totalDays = Math.ceil((new Date(challenge.end_date).getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    if (day < 1) return 1;
+    if (day > totalDays) return totalDays;
+    return day;
+  };
+
   const completeTask = async (challengeId: string, taskId: string, requiresPhoto: boolean, xpPoints: number) => {
     if (!user) return;
     if (requiresPhoto && !selectedImage) {
@@ -264,30 +288,23 @@ export default function Challenges() {
       return now.getTime() >= start.getTime() && now.getTime() <= end.getTime();
     };
 
-    const getCurrentDayNumber = (challenge: Challenge) => {
-      const start = new Date(challenge.start_date);
-      const diffMs = now.getTime() - start.getTime();
-      const day = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-      const totalDays = Math.ceil((new Date(challenge.end_date).getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-      if (day < 1) return 1;
-      if (day > totalDays) return totalDays;
-      return day;
-    };
-
     const hasUnlockedToday = (item: ChallengeItem, challenge: Challenge) => {
       if (!item) return false;
-      // If unlock_days empty or undefined, treat as available every day
       const currentDay = getCurrentDayNumber(challenge);
-      if (Array.isArray(item.unlock_days) && item.unlock_days.length > 0) {
-        if (!item.unlock_days.includes(currentDay)) return false;
+      
+      // Check if task is for today
+      if (Array.isArray(item.unlock_days) && item.unlock_days.length > 0 && !item.unlock_days.includes(currentDay)) {
+        return false;
       }
-      // Check unlock_time (HH:mm)
+      
+      // Check unlock time (HH:mm) - only check if it's today
       if (item.unlock_time) {
         const [hh, mm] = item.unlock_time.split(":");
         const threshold = new Date(now);
         threshold.setHours(parseInt(hh || '0'), parseInt(mm || '0'), 0, 0);
-        if (new Date().getTime() < threshold.getTime()) return false;
+        if (now.getTime() < threshold.getTime()) return false;
       }
+      
       return true;
     };
 
@@ -390,14 +407,14 @@ export default function Challenges() {
     const end = new Date(challenge.end_date);
     if (now.getTime() < start.getTime() || now.getTime() > end.getTime()) return false;
 
-    const daysTotal = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-    const daysPassed = Math.ceil((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-    const currentDay = Math.min(Math.max(1, daysPassed), daysTotal);
+    const currentDay = getCurrentDayNumber(challenge);
 
+    // Check if task is for today
     if (Array.isArray(item.unlock_days) && item.unlock_days.length > 0 && !item.unlock_days.includes(currentDay)) {
       return false;
     }
 
+    // Check unlock time
     if (item.unlock_time) {
       const [hh, mm] = item.unlock_time.split(":");
       const threshold = new Date(now);
@@ -406,6 +423,110 @@ export default function Challenges() {
     }
 
     return true;
+  };
+
+  const distributeRewards = async (challengeId: string, rankings: Ranking[]) => {
+    try {
+      // Get challenge rewards configuration
+      const { data: rewardsData } = await supabase
+        .from('challenge_rewards')
+        .select('position, coins_reward')
+        .eq('challenge_id', challengeId)
+        .order('position');
+
+      if (!rewardsData || rewardsData.length === 0) {
+        console.log('No rewards configured for this challenge');
+        return;
+      }
+
+      // Distribute rewards based on final ranking
+      for (const reward of rewardsData) {
+        const user = rankings.find(u => u.position === reward.position);
+        if (user) {
+          // Add coins to user's profile
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('total_coins')
+            .eq('user_id', user.user_id)
+            .single();
+
+          if (profileData) {
+            const newCoins = (profileData.total_coins || 0) + reward.coins_reward;
+            const { error: updateError } = await supabase
+              .from('profiles')
+              .update({ total_coins: newCoins })
+              .eq('user_id', user.user_id);
+
+            if (updateError) {
+              console.error('Error updating user coins:', updateError);
+            } else {
+              console.log(`Distributed ${reward.coins_reward} coins to ${user.display_name} for position ${reward.position}`);
+            }
+          }
+        }
+      }
+
+      // Mark challenge as rewards distributed
+      const { error: markError } = await supabase
+        .from('challenges')
+        .update({ rewards_distributed: true })
+        .eq('id', challengeId);
+
+      if (markError) {
+        console.error('Error marking rewards as distributed:', markError);
+      }
+
+    } catch (error) {
+      console.error('Error distributing rewards:', error);
+    }
+  };
+
+  const checkAndDistributeRewards = async (challenge: Challenge) => {
+    const now = new Date();
+    const endDate = new Date(challenge.end_date);
+    
+    // Check if challenge has ended and rewards haven't been distributed yet
+    if (now.getTime() > endDate.getTime() && !(challenge as any).rewards_distributed) {
+      const challengeRanking = rankings[challenge.id];
+      if (challengeRanking && challengeRanking.length > 0) {
+        await distributeRewards(challenge.id, challengeRanking);
+      }
+    }
+  };
+
+  const getTaskUnlockTime = (item: ChallengeItem, challenge: Challenge) => {
+    const start = new Date(challenge.start_date);
+    const end = new Date(challenge.end_date);
+    if (now.getTime() < start.getTime()) {
+      return `Disponível em ${start.toLocaleDateString('pt-BR')}`;
+    }
+    if (now.getTime() > end.getTime()) {
+      return 'Desafio finalizado';
+    }
+
+    const currentDay = getCurrentDayNumber(challenge);
+    
+    // Check if task is for a future day
+    if (Array.isArray(item.unlock_days) && item.unlock_days.length > 0) {
+      const nextAvailableDay = item.unlock_days.find(day => day > currentDay);
+      if (nextAvailableDay) {
+        const targetDate = new Date(start);
+        targetDate.setDate(start.getDate() + nextAvailableDay - 1);
+        return `Disponível no dia ${nextAvailableDay} (${targetDate.toLocaleDateString('pt-BR')})`;
+      }
+    }
+
+    // Check unlock time for today
+    if (item.unlock_time) {
+      const [hh, mm] = item.unlock_time.split(":");
+      const threshold = new Date(now);
+      threshold.setHours(parseInt(hh || '0'), parseInt(mm || '0'), 0, 0);
+      if (now.getTime() < threshold.getTime()) {
+        return `Disponível às ${item.unlock_time}`;
+      }
+    }
+
+    return 'Disponível agora';
   };
 
   const getTotalXP = (challenge: Challenge) => {
@@ -583,10 +704,24 @@ export default function Challenges() {
                             }`}>
                               {index === 0 ? '🏆' : index + 1}
                             </div>
-                            <div className="h-8 w-8 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center flex-shrink-0">
-                              <span className="text-primary-foreground font-bold text-xs">
-                                {u.display_name?.[0]?.toUpperCase() || 'U'}
-                              </span>
+                            <div className="h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                              {u.avatar_url ? (
+                                <img
+                                  src={u.avatar_url}
+                                  alt={u.display_name}
+                                  className="h-full w-full object-cover"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                <div className="h-8 w-8 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center">
+                                  <span className="text-primary-foreground font-bold text-xs">
+                                    {u.display_name?.[0]?.toUpperCase() || 'U'}
+                                  </span>
+                                </div>
+                              )}
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium truncate">{u.display_name}</p>
@@ -603,13 +738,27 @@ export default function Challenges() {
                     
                     {/* Challenge Items */}
                     <div className="bg-foreground rounded-t-3xl -mx-4 px-4 pt-6 pb-20">
-                      <h3 className="text-lg font-bold text-background mb-4">Tarefas</h3>
+                      <h3 className="text-lg font-bold text-background mb-4">Tarefas do Dia {currentDay}</h3>
                       <div className="space-y-3">
                         {challenge.challenge_items
                           ?.sort((a, b) => a.order_index - b.order_index)
+                          .filter((item) => {
+                            // Only show tasks for current day or completed tasks
+                            const currentDay = getCurrentDayNumber(challenge);
+                            const isCompleted = isTaskCompleted(item.id);
+                            
+                            // If no unlock_days specified, show every day
+                            if (!Array.isArray(item.unlock_days) || item.unlock_days.length === 0) {
+                              return true;
+                            }
+                            
+                            // Show if completed or if it's for today
+                            return isCompleted || item.unlock_days.includes(currentDay);
+                          })
                           .map((item) => {
                             const isCompleted = isTaskCompleted(item.id);
                             const available = isTaskAvailable(item, challenge);
+                            const unlockTime = getTaskUnlockTime(item, challenge);
                             
                             return (
                               <Card key={item.id} className={`bg-background border-0 rounded-2xl overflow-hidden ${
@@ -633,7 +782,10 @@ export default function Challenges() {
                                        <h4 className="font-medium text-foreground mb-1">{item.title}</h4>
                                        <p className="text-sm text-muted-foreground">{item.description}</p>
                                        {!isCompleted && !available && (
-                                         <p className="text-xs text-red-500 mt-2">Tarefa indisponível no momento</p>
+                                         <p className="text-xs text-red-500 mt-2">{unlockTime}</p>
+                                       )}
+                                       {!isCompleted && available && (
+                                         <p className="text-xs text-green-500 mt-2">✓ Disponível agora</p>
                                        )}
                                        
                                        {!isCompleted && item.requires_photo && (

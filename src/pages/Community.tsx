@@ -618,10 +618,24 @@ export default function Community() {
               <Card key={post.id} className="bg-background border-0 shadow-sm rounded-xl overflow-hidden">
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3 mb-3">
-                    <div className="h-10 w-10 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-primary-foreground font-bold text-sm">
-                        {post.profiles.display_name?.[0]?.toUpperCase() || 'U'}
-                      </span>
+                    <div className="h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      {post.profiles.avatar_url ? (
+                        <img
+                          src={post.profiles.avatar_url}
+                          alt={post.profiles.display_name}
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="h-10 w-10 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center">
+                          <span className="text-primary-foreground font-bold text-sm">
+                            {post.profiles.display_name?.[0]?.toUpperCase() || 'U'}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">

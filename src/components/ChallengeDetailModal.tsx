@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Clock, Zap, Users, Timer, Flame } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import fitnessChallenge1 from '@/assets/fitness-challenge-1.jpg';
 import fitnessChallenge2 from '@/assets/fitness-challenge-2.jpg';
@@ -31,6 +32,7 @@ interface ChallengeDetailModalProps {
 }
 
 export function ChallengeDetailModal({ challenge, onClose, onEnroll, isEnrolling }: ChallengeDetailModalProps) {
+  const navigate = useNavigate();
   const defaultImages = [fitnessChallenge1, fitnessChallenge2, fitnessChallenge3];
   // Safely compute an image index even if the ID is a UUID
   const imageIndex = (() => {
@@ -180,7 +182,7 @@ export function ChallengeDetailModal({ challenge, onClose, onEnroll, isEnrolling
                   onClick={() => {
                     // Only navigate if user is enrolled; otherwise prevent route errors
                     if (challenge.user_enrolled) {
-                      window.location.href = `/community?challenge=${challenge.id}`;
+                      navigate(`/community?challenge=${challenge.id}`);
                     } else {
                       alert('Você precisa se inscrever no desafio para acessar a comunidade.');
                     }
