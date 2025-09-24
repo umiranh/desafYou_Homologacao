@@ -258,17 +258,6 @@ export default function Dashboard() {
               <p className="text-sm font-medium">{profile?.total_xp || 0} XP</p>
               <p className="text-xs text-muted-foreground">Nível {profile?.level || 1}</p>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setNow(new Date());
-                console.log('Manual refresh triggered');
-              }}
-              className="text-xs"
-            >
-              🔄
-            </Button>
               <div className="relative">
                 <div className="h-10 w-10 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center">
                   <Trophy className="h-5 w-5 text-primary-foreground" />

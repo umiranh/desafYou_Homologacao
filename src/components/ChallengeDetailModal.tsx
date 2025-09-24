@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Clock, Zap, Users, Timer, Flame } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import fitnessChallenge1 from '@/assets/fitness-challenge-1.jpg';
 import fitnessChallenge2 from '@/assets/fitness-challenge-2.jpg';
@@ -33,6 +34,7 @@ interface ChallengeDetailModalProps {
 
 export function ChallengeDetailModal({ challenge, onClose, onEnroll, isEnrolling }: ChallengeDetailModalProps) {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const defaultImages = [fitnessChallenge1, fitnessChallenge2, fitnessChallenge3];
   // Safely compute an image index even if the ID is a UUID
   const imageIndex = (() => {
@@ -116,16 +118,11 @@ export function ChallengeDetailModal({ challenge, onClose, onEnroll, isEnrolling
             </Button>
             <div className="flex items-center gap-2 bg-white/20 backdrop-blur px-3 py-1 rounded-full">
               <div className="h-6 w-6 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center">
-                <span className="text-xs font-bold text-white">+</span>
+                <span className="text-xs font-bold text-white">🏆</span>
               </div>
+              <span className="text-sm font-medium text-white">Desafio</span>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-12 w-12 rounded-full bg-white/20 backdrop-blur hover:bg-white/30"
-            >
-              Mais
-            </Button>
+            <div className="h-12 w-12" /> {/* Spacer for alignment */}
           </div>
 
           {/* Challenge Image */}
@@ -180,11 +177,15 @@ export function ChallengeDetailModal({ challenge, onClose, onEnroll, isEnrolling
                   size="sm"
                   className="bg-foreground text-background hover:bg-foreground/90 rounded-full px-4"
                   onClick={() => {
-                    // Only navigate if user is enrolled; otherwise prevent route errors
+                    // Only navigate if user is enrolled; otherwise show beautiful message
                     if (challenge.user_enrolled) {
                       navigate(`/community?challenge=${challenge.id}`);
                     } else {
-                      alert('Você precisa se inscrever no desafio para acessar a comunidade.');
+                      toast({
+                        title: "🚀 Inscreva-se primeiro!",
+                        description: "Você precisa participar do desafio para acessar a comunidade e interagir com outros participantes.",
+                        duration: 4000,
+                      });
                     }
                   }}
                 >

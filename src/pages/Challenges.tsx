@@ -229,7 +229,11 @@ export default function Challenges() {
 
   // Tick clock to re-evaluate time-based availability
   useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 30000); // 30s
+    const timer = setInterval(() => {
+      const newTime = new Date();
+      setNow(newTime);
+      console.log('Challenges timer updated:', newTime.toISOString());
+    }, 5000); // 5s for more precise unlocking
     return () => clearInterval(timer);
   }, []);
 
@@ -419,7 +423,18 @@ export default function Challenges() {
       const [hh, mm] = item.unlock_time.split(":");
       const threshold = new Date(now);
       threshold.setHours(parseInt(hh || '0'), parseInt(mm || '0'), 0, 0);
-      if (now.getTime() < threshold.getTime()) return false;
+      const isUnlocked = now.getTime() >= threshold.getTime();
+      
+      // Debug log
+      console.log(`Task "${item.title}" unlock check:`, {
+        unlock_time: item.unlock_time,
+        threshold: threshold.toISOString(),
+        now: now.toISOString(),
+        isUnlocked,
+        currentDay
+      });
+      
+      if (!isUnlocked) return false;
     }
 
     return true;
