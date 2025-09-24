@@ -259,11 +259,14 @@ export default function Admin() {
           total_days: totalDays,
           image_url: imageUrl,
           created_by: user!.id,
+          is_active: true, // Explicitly set as active
         })
         .select()
         .single();
 
       if (challengeError) throw challengeError;
+
+      console.log('Challenge created successfully:', challenge);
 
       // Create challenge items
       const itemsToInsert = challengeItems

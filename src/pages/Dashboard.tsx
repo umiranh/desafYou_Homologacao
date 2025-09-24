@@ -101,6 +101,8 @@ export default function Dashboard() {
 
         if (challengesError) throw challengesError;
 
+        console.log('Raw challenges data:', challengesData);
+
         // Process challenges to add enrollment status and participant count
         const processedChallenges = challengesData.map((challenge) => {
           // Check if current user is enrolled
@@ -118,13 +120,17 @@ export default function Dashboard() {
           };
         });
 
-        // Only show challenges within time window (start_date <= now <= end_date)
-        const visible = processedChallenges.filter(ch => {
-          const start = new Date(ch.start_date);
-          const end = new Date(ch.end_date);
-          return now.getTime() >= start.getTime() && now.getTime() <= end.getTime();
-        });
-        setChallenges(visible);
+        // Temporarily show all active challenges for debugging
+        console.log(`Total challenges found: ${processedChallenges.length}`);
+        setChallenges(processedChallenges);
+        
+        // TODO: Re-enable date filtering after debugging
+        // const visible = processedChallenges.filter(ch => {
+        //   const start = new Date(ch.start_date);
+        //   const now = new Date();
+        //   const hasStarted = now.getTime() >= start.getTime();
+        //   return hasStarted;
+        // });
       } catch (error: any) {
         console.error('Error fetching challenges:', error);
         toast({
@@ -140,11 +146,14 @@ export default function Dashboard() {
     if (user) {
       fetchChallenges();
     }
-  }, [user, toast]);
+  }, [user, toast, now]);
 
-  // Update time every 30s to refresh visible challenges
+  // Update time every 10s to refresh visible challenges
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 30000);
+    const t = setInterval(() => {
+      setNow(new Date());
+      console.log('Dashboard timer updated:', new Date().toISOString());
+    }, 10000);
     return () => clearInterval(t);
   }, []);
 
@@ -244,11 +253,22 @@ export default function Dashboard() {
               <h1 className="text-2xl font-bold text-foreground mb-1">Escolha</h1>
               <h2 className="text-2xl font-bold text-foreground">seu desafio!</h2>
             </div>
-            <div className="flex items-center space-x-3">
-              <div className="text-right">
-                <p className="text-sm font-medium">{profile?.total_xp || 0} XP</p>
-                <p className="text-xs text-muted-foreground">Nível {profile?.level || 1}</p>
-              </div>
+          <div className="flex items-center space-x-3">
+            <div className="text-right">
+              <p className="text-sm font-medium">{profile?.total_xp || 0} XP</p>
+              <p className="text-xs text-muted-foreground">Nível {profile?.level || 1}</p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setNow(new Date());
+                console.log('Manual refresh triggered');
+              }}
+              className="text-xs"
+            >
+              🔄
+            </Button>
               <div className="relative">
                 <div className="h-10 w-10 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center">
                   <Trophy className="h-5 w-5 text-primary-foreground" />
