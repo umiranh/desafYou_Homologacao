@@ -271,10 +271,19 @@ export default function Challenges() {
     return day;
   };
 
-  // Determine if unlock_days is weekday-based (0-6) or day-of-challenge
+  // Determine if unlock_days is weekday-based (0-6 or 1-7) or day-of-challenge
   const isWeekdaySchedule = (unlockDays?: number[]) => {
     if (!Array.isArray(unlockDays) || unlockDays.length === 0) return false;
-    return unlockDays.every((d) => d >= 0 && d <= 6);
+    const min = Math.min(...unlockDays);
+    const max = Math.max(...unlockDays);
+    // 0-6 or 1-7 (some seeds may use 1..7 for Mon..Sun or Sun..Sat)
+    return (min >= 0 && max <= 6) || (min >= 1 && max <= 7);
+  };
+
+  const normalizeWeekday = (day: number) => {
+    // Convert 7 to 0 (Sunday) if using 1..7 system
+    if (day === 7) return 0;
+    return day;
   };
 
   const isItemScheduledForToday = (item: ChallengeItem, challenge: Challenge) => {
@@ -282,7 +291,8 @@ export default function Challenges() {
 
     if (isWeekdaySchedule(item.unlock_days)) {
       const todayWeekday = now.getDay(); // 0=Sun..6=Sat
-      return item.unlock_days.includes(todayWeekday);
+      const normalized = item.unlock_days.map(normalizeWeekday);
+      return normalized.includes(todayWeekday);
     }
 
     const currentDay = getCurrentDayNumber(challenge);
@@ -785,7 +795,7 @@ export default function Challenges() {
                         {challenge.challenge_items
                           ?.sort((a, b) => a.order_index - b.order_index)
                           .filter((item) => {
-                            // Only show tasks scheduled for today or completed tasks
+                            // Prefer showing tasks scheduled for today or completed
                             const isCompleted = isTaskCompleted(item.id);
                             if (isCompleted) return true;
                             return isItemScheduledForToday(item, challenge);
@@ -924,11 +934,41 @@ export default function Challenges() {
                               </Card>
                             );
                           })}
-                        {challenge.challenge_items
-                          ?.filter((item) => !isTaskCompleted(item.id) && isItemScheduledForToday(item, challenge)).length === 0 && (
-                          <div className="text-center text-background/80 text-sm py-4">
-                            Você está inscrito. As tarefas de hoje ainda não foram liberadas.
-                          </div>
+                        {challenge.challenge_items && challenge.challenge_items.length > 0 &&
+                          challenge.challenge_items
+                            .filter((item) => !isTaskCompleted(item.id) && isItemScheduledForToday(item, challenge)).length === 0 && (
+                          <>
+                            <div className="text-center text-background/80 text-sm py-2">
+                              Você está inscrito. As tarefas de hoje ainda não foram liberadas.
+                            </div>
+                            {/* Fallback: show all tasks as locked so user sees what's coming */}
+                            {challenge.challenge_items
+                              .sort((a, b) => a.order_index - b.order_index)
+                              .map((item) => {
+                                const isCompleted = isTaskCompleted(item.id);
+                                if (isCompleted) return null;
+                                const available = isTaskAvailable(item, challenge);
+                                const unlockTime = getTaskUnlockTime(item, challenge);
+                                return (
+                                  <Card key={`fallback-${item.id}`} className={`bg-background border-0 rounded-2xl overflow-hidden`}>
+                                    <CardContent className="p-4">
+                                      <div className="flex items-center gap-4">
+                                        <div className="flex-shrink-0">
+                                          <div className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center">
+                                            <Circle className="h-5 w-5 text-muted-foreground" />
+                                          </div>
+                                        </div>
+                                        <div className="flex-1">
+                                          <h4 className="font-medium text-foreground mb-1">{item.title}</h4>
+                                          <p className="text-sm text-muted-foreground">{item.description}</p>
+                                          <p className="text-xs text-red-500 mt-2">{unlockTime}</p>
+                                        </div>
+                                      </div>
+                                    </CardContent>
+                                  </Card>
+                                );
+                              })}
+                          </>
                         )}
                       </div>
                     </div>
