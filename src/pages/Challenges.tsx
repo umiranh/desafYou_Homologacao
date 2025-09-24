@@ -271,6 +271,24 @@ export default function Challenges() {
     return day;
   };
 
+  // Determine if unlock_days is weekday-based (0-6) or day-of-challenge
+  const isWeekdaySchedule = (unlockDays?: number[]) => {
+    if (!Array.isArray(unlockDays) || unlockDays.length === 0) return false;
+    return unlockDays.every((d) => d >= 0 && d <= 6);
+  };
+
+  const isItemScheduledForToday = (item: ChallengeItem, challenge: Challenge) => {
+    if (!Array.isArray(item.unlock_days) || item.unlock_days.length === 0) return true;
+
+    if (isWeekdaySchedule(item.unlock_days)) {
+      const todayWeekday = now.getDay(); // 0=Sun..6=Sat
+      return item.unlock_days.includes(todayWeekday);
+    }
+
+    const currentDay = getCurrentDayNumber(challenge);
+    return item.unlock_days.includes(currentDay);
+  };
+
   const completeTask = async (challengeId: string, taskId: string, requiresPhoto: boolean, xpPoints: number) => {
     if (!user) return;
     if (requiresPhoto && !selectedImage) {
@@ -411,12 +429,8 @@ export default function Challenges() {
     const end = new Date(challenge.end_date);
     if (now.getTime() < start.getTime() || now.getTime() > end.getTime()) return false;
 
-    const currentDay = getCurrentDayNumber(challenge);
-
-    // Check if task is for today
-    if (Array.isArray(item.unlock_days) && item.unlock_days.length > 0 && !item.unlock_days.includes(currentDay)) {
-      return false;
-    }
+    // Check if task is scheduled for today (weekday or day-of-challenge)
+    if (!isItemScheduledForToday(item, challenge)) return false;
 
     // Check unlock time
     if (item.unlock_time) {
@@ -431,7 +445,7 @@ export default function Challenges() {
         threshold: threshold.toISOString(),
         now: now.toISOString(),
         isUnlocked,
-        currentDay
+        todayWeekday: now.getDay(),
       });
       
       if (!isUnlocked) return false;
@@ -519,15 +533,28 @@ export default function Challenges() {
       return 'Desafio finalizado';
     }
 
-    const currentDay = getCurrentDayNumber(challenge);
-    
-    // Check if task is for a future day
-    if (Array.isArray(item.unlock_days) && item.unlock_days.length > 0) {
-      const nextAvailableDay = item.unlock_days.find(day => day > currentDay);
-      if (nextAvailableDay) {
-        const targetDate = new Date(start);
-        targetDate.setDate(start.getDate() + nextAvailableDay - 1);
-        return `Disponível no dia ${nextAvailableDay} (${targetDate.toLocaleDateString('pt-BR')})`;
+    // If not for today, show when the next occurrence will be
+    if (Array.isArray(item.unlock_days) && item.unlock_days.length > 0 && !isItemScheduledForToday(item, challenge)) {
+      if (isWeekdaySchedule(item.unlock_days)) {
+        // Find next weekday occurrence from today
+        const today = now.getDay();
+        for (let add = 1; add <= 7; add++) {
+          const candidate = (today + add) % 7;
+          if (item.unlock_days.includes(candidate)) {
+            const target = new Date(now);
+            target.setDate(now.getDate() + add);
+            return `Disponível em ${target.toLocaleDateString('pt-BR')}`;
+          }
+        }
+      } else {
+        // Day-of-challenge scheduling
+        const currentDay = getCurrentDayNumber(challenge);
+        const nextAvailableDay = item.unlock_days.find(day => day > currentDay);
+        if (nextAvailableDay) {
+          const targetDate = new Date(start);
+          targetDate.setDate(start.getDate() + nextAvailableDay - 1);
+          return `Disponível no dia ${nextAvailableDay} (${targetDate.toLocaleDateString('pt-BR')})`;
+        }
       }
     }
 
@@ -758,17 +785,10 @@ export default function Challenges() {
                         {challenge.challenge_items
                           ?.sort((a, b) => a.order_index - b.order_index)
                           .filter((item) => {
-                            // Only show tasks for current day or completed tasks
-                            const currentDay = getCurrentDayNumber(challenge);
+                            // Only show tasks scheduled for today or completed tasks
                             const isCompleted = isTaskCompleted(item.id);
-                            
-                            // If no unlock_days specified, show every day
-                            if (!Array.isArray(item.unlock_days) || item.unlock_days.length === 0) {
-                              return true;
-                            }
-                            
-                            // Show if completed or if it's for today
-                            return isCompleted || item.unlock_days.includes(currentDay);
+                            if (isCompleted) return true;
+                            return isItemScheduledForToday(item, challenge);
                           })
                           .map((item) => {
                             const isCompleted = isTaskCompleted(item.id);
@@ -904,6 +924,12 @@ export default function Challenges() {
                               </Card>
                             );
                           })}
+                        {challenge.challenge_items
+                          ?.filter((item) => !isTaskCompleted(item.id) && isItemScheduledForToday(item, challenge)).length === 0 && (
+                          <div className="text-center text-background/80 text-sm py-4">
+                            Você está inscrito. As tarefas de hoje ainda não foram liberadas.
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

@@ -107,7 +107,7 @@ export function ChallengeDetailModal({ challenge, onClose, onEnroll, isEnrolling
       <DialogContent className="max-w-md mx-auto p-0 bg-gradient-to-br from-secondary/20 via-background to-secondary/30 border-none overflow-hidden max-h-[90vh] overflow-y-auto">
         <div className="relative">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 pb-0">
+          <div className="flex items-center justify-start p-4 pb-0">
             <Button
               variant="ghost"
               size="sm"
@@ -116,13 +116,6 @@ export function ChallengeDetailModal({ challenge, onClose, onEnroll, isEnrolling
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div className="flex items-center gap-2 bg-white/20 backdrop-blur px-3 py-1 rounded-full">
-              <div className="h-6 w-6 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center">
-                <span className="text-xs font-bold text-white">🏆</span>
-              </div>
-              <span className="text-sm font-medium text-white">Desafio</span>
-            </div>
-            <div className="h-12 w-12" /> {/* Spacer for alignment */}
           </div>
 
           {/* Challenge Image */}
@@ -150,6 +143,14 @@ export function ChallengeDetailModal({ challenge, onClose, onEnroll, isEnrolling
             <p className="text-muted-foreground text-sm leading-relaxed">
               {challenge.description}
             </p>
+
+            {/* Dates */}
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Clock className="h-4 w-4" />
+              <span>
+                Início: {new Date(challenge.start_date).toLocaleDateString('pt-BR')} · Fim: {new Date(challenge.end_date).toLocaleDateString('pt-BR')}
+              </span>
+            </div>
 
             {/* Stats */}
             <div className="flex gap-2">
